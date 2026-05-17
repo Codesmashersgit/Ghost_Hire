@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -32,6 +32,16 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+
+  // Automatically approve permission requests (specifically microphone/audio access)
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    const allowedPermissions = ['media', 'audioCapture'];
+    if (allowedPermissions.includes(permission)) {
+      callback(true); // Approve microphone access
+    } else {
+      callback(false);
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

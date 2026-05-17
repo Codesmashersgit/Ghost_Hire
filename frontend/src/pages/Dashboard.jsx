@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [invoicesList, setInvoicesList] = useState([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
+  const [speechNotification, setSpeechNotification] = useState(null)
   
   const recognitionRef = useRef(null)
   const messagesEndRef = useRef(null)
@@ -98,6 +99,15 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if (speechNotification) {
+      const t = setTimeout(() => {
+        setSpeechNotification(null);
+      }, 5000);
+      return () => clearTimeout(t);
+    }
+  }, [speechNotification]);
+
+  useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
@@ -108,7 +118,8 @@ export default function Dashboard() {
       rec.onresult = (event) => {
         const transcript = event.results[event.results.length - 1][0].transcript.trim();
         if (transcript) {
-          handleFinalTranscript(transcript);
+          setManualInput(transcript);
+          setSpeechNotification(transcript);
         }
       };
 
@@ -171,7 +182,7 @@ export default function Dashboard() {
       setMessages(prev => {
         const newMsgs = [...prev];
         if(newMsgs[newMsgs.length - 1].type === 'system') newMsgs.pop();
-        return [...newMsgs, { type: 'system', text: 'Error generating AI response. Please check your API key.' }];
+        return [...newMsgs, { type: 'system', text: `Error: ${e.message || e}` }];
       });
     }
   };
@@ -185,29 +196,20 @@ export default function Dashboard() {
 
     try {
       const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      chatRef.current = model.startChat({
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
         systemInstruction: `You are an expert interview copilot. The user will send you interview questions (and optionally some context). You must provide concise, professional, and highly actionable answers that the candidate can speak during the interview. Keep it natural, straight to the point, and respond exactly in ${selectedLang}.`
       });
+      chatRef.current = model.startChat();
     } catch(e) {
       console.error("Failed to init AI", e);
     }
 
     setIsSessionActive(true);
     setMessages([
-      { type: 'system', text: 'Session started. GhostHire is now listening...' },
+      { type: 'system', text: 'Session started. Mic is muted. Click the microphone button below to start voice-drafting.' },
     ]);
-
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      setMessages([{ type: 'system', text: 'Error: Speech Recognition API not supported in this browser.' }]);
-    }
+    setIsListening(false);
   }
 
   const stopSession = async () => {
@@ -276,6 +278,7 @@ export default function Dashboard() {
     if (!manualInput.trim()) return;
     handleFinalTranscript(manualInput.trim());
     setManualInput('');
+    setSpeechNotification(null);
   };
 
   return (
@@ -403,7 +406,19 @@ export default function Dashboard() {
                 ) : (
                   /* Live Session */
                   <>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 relative">
+                      {speechNotification && (
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+                          <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-primary to-accent border border-primary/20 rounded-2xl shadow-[0_10px_30px_rgba(108,92,231,0.4)] backdrop-blur-xl text-white text-xs font-semibold max-w-md">
+                            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center animate-pulse"><Mic size={12} /></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-extrabold uppercase tracking-wider text-[0.65rem] opacity-75">Voice Detected</p>
+                              <p className="truncate opacity-95">"{speechNotification}"</p>
+                            </div>
+                            <button onClick={handleSendManualMessage} className="px-3 py-1.5 bg-white text-primary font-bold rounded-lg hover:bg-white/95 transition-all text-[0.65rem] shrink-0">Send to AI</button>
+                          </div>
+                        </div>
+                      )}
                       {messages.map((msg, i) => (
                         <div key={i} className={`max-w-2xl ${msg.type === 'ai' ? '' : msg.type === 'system' ? 'mx-auto text-center' : ''}`}>
                           {msg.type === 'system' ? (
