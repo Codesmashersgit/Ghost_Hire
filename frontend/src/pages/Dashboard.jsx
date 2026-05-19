@@ -28,26 +28,12 @@ export default function Dashboard() {
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
   
-  const [aiProvider, setAiProvider] = useState(() => {
-    return localStorage.getItem('ghosthire_ai_provider') || 'GEMINI';
-  })
-  const [groqApiKey, setGroqApiKey] = useState(() => {
-    return localStorage.getItem('ghosthire_groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || '';
-  })
-  const [groqModel, setGroqModel] = useState(() => {
-    const saved = localStorage.getItem('ghosthire_groq_model');
-    if (saved === 'llama-3.3-70b-specdec') {
-      return 'llama-3.3-70b-versatile';
-    }
-    return saved || 'llama-3.3-70b-versatile';
-  })
-  const [pollinationsModel, setPollinationsModel] = useState(() => {
-    return localStorage.getItem('ghosthire_pollinations_model') || 'openai';
+  const [githubModel, setGithubModel] = useState(() => {
+    return localStorage.getItem('ghosthire_github_model') || 'gpt-4o-mini';
   })
   
   const recognitionRef = useRef(null)
   const messagesEndRef = useRef(null)
-  const chatRef = useRef(null)
   const chatHistoryRef = useRef([])
   const timerIntervalRef = useRef(null)
   const secondsRef = useRef(0)
@@ -86,20 +72,8 @@ export default function Dashboard() {
   }, [autoSend])
 
   useEffect(() => {
-    localStorage.setItem('ghosthire_ai_provider', aiProvider);
-  }, [aiProvider])
-
-  useEffect(() => {
-    localStorage.setItem('ghosthire_groq_api_key', groqApiKey);
-  }, [groqApiKey])
-
-  useEffect(() => {
-    localStorage.setItem('ghosthire_groq_model', groqModel);
-  }, [groqModel])
-
-  useEffect(() => {
-    localStorage.setItem('ghosthire_pollinations_model', pollinationsModel);
-  }, [pollinationsModel])
+    localStorage.setItem('ghosthire_github_model', githubModel);
+  }, [githubModel])
 
   const fetchSessions = async (uid) => {
     if (!uid) return;
@@ -184,41 +158,52 @@ export default function Dashboard() {
   }, [speechNotification]);
 
   const transcribeAudio = async (blob) => {
-    const activeKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!activeKey) return "";
+    const activeKey = import.meta.env.VITE_GROQ_API_KEY;
+    if (!activeKey) {
+      console.warn("Groq API Key (VITE_GROQ_API_KEY) is missing in your .env file.");
+      return "";
+    }
     
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64Data = reader.result.split(',')[1];
-          const genAI = new GoogleGenerativeAI(activeKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-          
-          const prompt = `You are a speech-to-text transcriber for an interview.
-Transcribe the provided audio into text.
-The speech is in ${selectedLang}.
-Return ONLY the transcribed text. Do not add any notes, headers, explanations, or conversational filler.
-If the audio is silent or only contains noise, return exactly nothing (empty string).`;
-          
-          const result = await model.generateContent([
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: blob.type || "audio/webm"
-              }
-            },
-            prompt
-          ]);
-          
-          const text = result.response.text().trim();
-          resolve(text);
-        } catch (err) {
-          console.error("Transcription error:", err);
-          resolve("");
-        }
+      const url = 'https://api.groq.com/openai/v1/audio/transcriptions';
+      
+      const extension = blob.type.includes('ogg') ? 'ogg' : 'webm';
+      const file = new File([blob], `speech.${extension}`, { type: blob.type });
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('model', 'whisper-large-v3');
+      
+      const langMap = {
+        'English': 'en',
+        'Hindi': 'hi',
+        'German': 'de',
+        'French': 'fr',
+        'Japanese': 'ja'
       };
-      reader.readAsDataURL(blob);
+      const langCode = langMap[selectedLang] || 'en';
+      formData.append('language', langCode);
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${activeKey}`
+        },
+        body: formData
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        resolve(data.text || "");
+      })
+      .catch(err => {
+        console.error("Groq Whisper Transcription failed:", err);
+        resolve("");
+      });
     });
   };
 
@@ -419,21 +404,33 @@ If the audio is silent or only contains noise, return exactly nothing (empty str
         rec.lang = langMap[selectedLang] || 'en-US';
 
         rec.onresult = (event) => {
-          let interimTranscript = '';
-          let finalTranscript = '';
+          let finalPart = '';
+          let interimPart = '';
 
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
+          for (let i = 0; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+              finalPart += event.results[i][0].transcript;
             } else {
-              interimTranscript += event.results[i][0].transcript;
+              interimPart += event.results[i][0].transcript;
             }
           }
 
-          const text = finalTranscript || interimTranscript;
-          if (text.trim()) {
-            setManualInput(text);
-            setSpeechNotification(text);
+          const fullText = (finalPart + interimPart).trim();
+          
+          if (fullText) {
+            setManualInput(fullText);
+            setSpeechNotification(fullText);
+          }
+
+          // If a final result segment is completed and autoSend is enabled, submit it
+          if (event.results[event.results.length - 1].isFinal && autoSend && finalPart.trim()) {
+            const trimmed = finalPart.trim();
+            handleFinalTranscript(trimmed);
+            setManualInput('');
+            setSpeechNotification(null);
+            try {
+              rec.stop(); // Stops recognition, triggers onend which auto-restarts for a clean next sentence
+            } catch(e) {}
           }
         };
 
@@ -445,14 +442,13 @@ If the audio is silent or only contains noise, return exactly nothing (empty str
           } else if (event.error === 'network') {
             setMessages(prev => [...prev, { 
               type: 'system', 
-              text: 'Native engine error: Network/Service restricted. Switching to GhostHire AI Engine...' 
+              text: 'Speech recognition experienced a network issue. Please check your internet connection.' 
             }]);
-            setTranscriptionEngine('AI_ENGINE');
           }
         };
 
         rec.onend = () => {
-          if (isSessionActiveRef.current && isListeningRef.current && transcriptionEngineRef.current === 'NATIVE') {
+          if (isSessionActiveRef.current && isListeningRef.current) {
             try {
               rec.start();
             } catch(e) {
@@ -498,53 +494,7 @@ If the audio is silent or only contains noise, return exactly nothing (empty str
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const initChatSession = (modelName, history = []) => {
-    const activeKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!activeKey) return null;
 
-    try {
-      const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        systemInstruction: `You are an expert interview copilot. Provide extremely concise, precise, and direct answers under high pressure. 
-DO NOT write introductions, conclusions, or filler text. Start responding immediately.
-
-Your response MUST strictly follow this ultra-short structure:
-
-### 🔑 KEY TALKING POINTS
-* [2 bullets max, 3-4 words each. Highlight core tech/strategy]
-
-### 🗣️ EXACT RESPONSE TO SPEAK (First-Person Tone)
-"[Provide a natural 2-sentence response max, in first person (I, my, we). Make it clear, direct, and quick to speak.]"
-
-### 💡 TECHNICAL CORNER
-* [1 sentence max highlighting architecture, complexity (e.g. O(N)), or design pattern]
-
-Maintain this exact format and respond strictly in ${selectedLang}.`
-      });
-      chatRef.current = model.startChat({ history });
-      return true;
-    } catch(e) {
-      console.error(`Failed to init chat session with ${modelName}`, e);
-      return false;
-    }
-  };
-
-  const isCasualPhrase = (text) => {
-    const clean = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
-    const casualWords = [
-      "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
-      "am i audible", "can you hear me", "can everyone hear me", "testing", 
-      "test", "testing mic", "mic test", "one two three", "1 2 3", "how are you",
-      "thank you", "thanks", "ok", "okay", "fine", "yes", "no"
-    ];
-    
-    if (clean.split(/\s+/).length <= 3) {
-      return casualWords.some(w => clean.includes(w) || w.includes(clean));
-    }
-    
-    return casualWords.some(w => clean.includes(w));
-  };
 
   const handleFinalTranscript = async (text) => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -559,51 +509,16 @@ Maintain this exact format and respond strictly in ${selectedLang}.`
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
     }]);
 
-    if (isCasualPhrase(text)) {
-      setTimeout(() => {
-        let reply = "Hello! Ready when you are.";
-        const clean = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
-        if (clean.includes("audible") || clean.includes("hear me")) {
-          reply = "Yes, you are perfectly audible. I can hear you clearly.";
-        } else if (clean.includes("thank") || clean.includes("thanks")) {
-          reply = "You're welcome!";
-        } else if (clean.includes("how are you")) {
-          reply = "I am doing well, thank you! How are you?";
-        }
-        
-        setMessages(prev => {
-          return prev.map(msg => {
-            if (msg.id === aiMessageId) {
-              return { ...msg, text: reply, isStreaming: false };
-            }
-            return msg;
-          });
-        });
-      }, 300);
-      return;
-    }
-
     try {
-      const activeKey = import.meta.env.VITE_GROQ_API_KEY;
+      const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
       if (!activeKey) {
-        throw new Error("Groq API Key (VITE_GROQ_API_KEY) is missing in your .env file.");
+        throw new Error("GitHub Token (VITE_GITHUB_TOKEN) is missing in your .env file.");
       }
       
-      const systemInstruction = `You are an expert interview copilot. Provide extremely concise, precise, and direct answers under high pressure. 
-DO NOT write introductions, conclusions, or filler text. Start responding immediately.
-
-Your response MUST strictly follow this ultra-short structure:
-
-### 🔑 KEY TALKING POINTS
-* [2 bullets max, 3-4 words each. Highlight core tech/strategy]
-
-### 🗣️ EXACT RESPONSE TO SPEAK (First-Person Tone)
-"[Provide a natural 2-sentence response max, in first person (I, my, we). Make it clear, direct, and quick to speak.]"
-
-### 💡 TECHNICAL CORNER
-* [1 sentence max highlighting architecture, complexity (e.g. O(N)), or design pattern]
-
-Maintain this exact format and respond strictly in ${selectedLang}.`;
+      const systemInstruction = `You are a professional coding interview assistant. Provide a direct, extremely concise, and precise answer.
+Do NOT use any markdown headers (like ###), bullet points (*), emojis, or conversational intros/outros.
+Start answering the question immediately in first person ("I", "my", "we"). Limit your entire response to exactly 2 to 3 sentences maximum.
+Respond strictly in ${selectedLang}.`;
 
       const prompt = extraContext ? `Context: ${extraContext}\n\nQuestion: ${text}` : text;
       const apiMessages = [
@@ -612,14 +527,14 @@ Maintain this exact format and respond strictly in ${selectedLang}.`;
         { role: "user", content: prompt }
       ];
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${activeKey}`
         },
         body: JSON.stringify({
-          model: groqModel,
+          model: githubModel,
           messages: apiMessages,
           stream: true
         })
@@ -627,7 +542,7 @@ Maintain this exact format and respond strictly in ${selectedLang}.`;
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Groq API returned HTTP ${response.status}`);
+        throw new Error(errData.error?.message || `GitHub Models API returned HTTP ${response.status}`);
       }
 
       const reader = response.body.getReader();
@@ -680,10 +595,10 @@ Maintain this exact format and respond strictly in ${selectedLang}.`;
       chatHistoryRef.current.push({ role: "assistant", content: accumulatedText });
 
     } catch(e) {
-      console.error("Groq generation failed:", e);
+      console.error("GitHub model generation failed:", e);
       setMessages(prev => {
         const filtered = prev.filter(msg => msg.id !== aiMessageId);
-        return [...filtered, { type: 'system', text: `Error: Groq request failed. (${e.message || e})` }];
+        return [...filtered, { type: 'system', text: `Error: GitHub Model request failed. (${e.message || e})` }];
       });
     }
   };
@@ -691,9 +606,9 @@ Maintain this exact format and respond strictly in ${selectedLang}.`;
   const startSession = () => {
     chatHistoryRef.current = [];
 
-    const activeKey = import.meta.env.VITE_GROQ_API_KEY;
+    const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
     if (!activeKey) {
-      alert("Groq API Key not found in .env file. Please add VITE_GROQ_API_KEY.");
+      alert("GitHub Token not found in .env file. Please add VITE_GITHUB_TOKEN.");
       return;
     }
 
@@ -1269,65 +1184,19 @@ Maintain this exact format and respond strictly in ${selectedLang}.`;
               </div>
 
               <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-text-primary border-b border-black/5 pb-2">AI Provider & API Settings</h3>
+                <h3 className="text-base font-bold text-text-primary border-b border-black/5 pb-2">AI Copilot Model</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">AI Engine Provider</label>
+                    <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">GitHub AI Model</label>
                     <select 
-                      value={aiProvider} 
-                      onChange={e => setAiProvider(e.target.value)}
+                      value={githubModel} 
+                      onChange={e => setGithubModel(e.target.value)}
                       className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
                     >
-                      <option value="GEMINI">Google Gemini API (Default)</option>
-                      <option value="GROQ">Groq API (Ultra-Fast / Free Developer Key)</option>
-                      <option value="POLLINATIONS">Pollinations AI (100% Free & Keyless)</option>
+                      <option value="gpt-4o-mini">GPT-4o-mini (Free / Blazing Fast & Extremely Smart)</option>
+                      <option value="gpt-4o">GPT-4o (Free / Smartest Reasoning & Advanced Coding)</option>
                     </select>
                   </div>
-
-                  {aiProvider === 'POLLINATIONS' ? (
-                    <div>
-                      <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">Pollinations AI Model</label>
-                      <select 
-                        value={pollinationsModel} 
-                        onChange={e => setPollinationsModel(e.target.value)}
-                        className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
-                      >
-                        <option value="openai">OpenAI (GPT-4o-mini - Default)</option>
-                        <option value="llama">Llama 3 70B (Fast & Intelligent)</option>
-                        <option value="mistral">Mistral 7B (Lightweight & Quick)</option>
-                      </select>
-                    </div>
-                  ) : null}
-
-                  {aiProvider === 'GROQ' ? (
-                    <>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center justify-between">
-                          <span>Groq API Key</span>
-                          <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-primary-light hover:underline text-[0.75rem] normal-case font-medium">Get Free Key ↗</a>
-                        </label>
-                        <input 
-                          type="password" 
-                          value={groqApiKey} 
-                          onChange={e => setGroqApiKey(e.target.value)}
-                          placeholder="gsk_..."
-                          className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">Groq AI Model</label>
-                        <select 
-                          value={groqModel} 
-                          onChange={e => setGroqModel(e.target.value)}
-                          className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
-                        >
-                          <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Smartest, High Quality Coding)</option>
-                          <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Blazing Fast, Low Latency)</option>
-                          <option value="mixtral-8x7b-32768">Mixtral 8x7B (Excellent Multi-lingual Reasoning)</option>
-                        </select>
-                      </div>
-                    </>
-                  ) : null}
                 </div>
               </div>
 
