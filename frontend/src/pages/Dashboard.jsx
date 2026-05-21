@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, Play, Upload, Settings, LogOut, Clock, Zap, FileText, Globe, Mic, MicOff, Square, MessageSquare, ChevronDown, CreditCard, HelpCircle, Plus, Key, ArrowRight, Sliders, X, Activity, RefreshCw } from 'lucide-react'
+import { Sparkles, Play, Upload, Settings, LogOut, Clock, Zap, FileText, Globe, Mic, MicOff, Square, MessageSquare, ChevronDown, CreditCard, HelpCircle, Plus, Key, ArrowRight, Sliders, X, Activity, RefreshCw, Shield } from 'lucide-react'
 
+const FALLBACK_MODELS = [
+  "gpt-4o-mini",
+  "gpt-4o",
+  "meta-llama-3.1-70b-instruct",
+  "Phi-3-medium-128k-instruct"
+];
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -18,6 +24,21 @@ export default function Dashboard() {
   const [invoicesList, setInvoicesList] = useState([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
   const [speechNotification, setSpeechNotification] = useState(null)
+  
+  // Usage tracking states
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [usageLimitReached, setUsageLimitReached] = useState(false)
+  const [secondsRemaining, setSecondsRemaining] = useState(600)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const usageIntervalRef = useRef(null)
+
+  // Question prediction and suggestions
+  const [suggestions, setSuggestions] = useState([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+
+  // Silence-based auto-send refs
+  const accumulatedSpeechRef = useRef('')
+  const sendTimeoutRef = useRef(null)
   
   const [transcriptionEngine, setTranscriptionEngine] = useState(() => {
     return localStorage.getItem('ghosthire_transcription_engine') || 'AI_ENGINE';
@@ -47,6 +68,7 @@ export default function Dashboard() {
   const audioContextRef = useRef(null)
   const analyserRef = useRef(null)
   const animationFrameRef = useRef(null)
+  const recordingSessionIdRef = useRef(0)
 
   const isListeningRef = useRef(isListening)
   useEffect(() => {
@@ -134,19 +156,85 @@ export default function Dashboard() {
     }
   };
 
+  // Fetch usage status from backend
+  const fetchUsageStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('http://localhost:5000/api/usage/status', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsAdmin(data.isAdmin);
+        setSecondsRemaining(data.isAdmin ? Infinity : data.secondsRemaining);
+        setUsageLimitReached(data.limitReached);
+        if (data.limitReached && !data.isAdmin) {
+          setShowPaywall(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch usage status', err);
+    }
+  };
+
+  // Track usage: send seconds to backend
+  const trackUsage = async (seconds) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('http://localhost:5000/api/usage/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ seconds })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSecondsRemaining(data.isAdmin ? Infinity : data.secondsRemaining);
+        if (data.limitReached) {
+          setUsageLimitReached(true);
+          setShowPaywall(true);
+          // Force stop the session
+          if (isSessionActiveRef.current) {
+            stopSession();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to track usage', err);
+    }
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
         const parsed = JSON.parse(userData);
         setUser(parsed);
+        setIsAdmin(parsed.isAdmin || false);
         fetchSessions(parsed._id);
         fetchInvoices(parsed._id);
+        fetchUsageStatus();
       } catch (e) {
         console.error("Failed to parse user data");
       }
     }
   }, []);
+
+  // Track usage every 30 seconds while session is active
+  useEffect(() => {
+    if (isSessionActive && !isAdmin) {
+      usageIntervalRef.current = setInterval(() => {
+        trackUsage(30);
+      }, 30000);
+      return () => clearInterval(usageIntervalRef.current);
+    } else {
+      if (usageIntervalRef.current) clearInterval(usageIntervalRef.current);
+    }
+  }, [isSessionActive, isAdmin]);
 
   useEffect(() => {
     if (speechNotification) {
@@ -284,10 +372,19 @@ export default function Dashboard() {
     analyserRef.current = null;
   };
 
-  const startRecording = async () => {
+  // Lock to prevent overlapping transcriptions
+  const isProcessingRef = useRef(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+
+  const startRecording = async (sessionId) => {
     chunksRef.current = [];
+    isProcessingRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (sessionId !== recordingSessionIdRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       streamRef.current = stream;
       
       startVisualizer(stream);
@@ -307,53 +404,96 @@ export default function Dashboard() {
       };
 
       mediaRecorder.onstop = async () => {
-        if (chunksRef.current.length > 0) {
-          const audioBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
-          chunksRef.current = [];
-          
-          setIsTranscribing(true);
-          const text = await transcribeAudio(audioBlob);
-          setIsTranscribing(false);
-          
-          if (text && text.trim()) {
-            setManualInput(prev => {
-              const joined = prev ? `${prev} ${text}` : text;
-              if (autoSend) {
-                setTimeout(() => {
-                  handleFinalTranscript(joined);
-                  setManualInput('');
-                  setSpeechNotification(null);
-                }, 100);
-                return '';
-              } else {
-                setSpeechNotification(joined);
-                return joined;
-              }
-            });
-          }
-        }
+        // Guard: ignore if session changed or already processing
+        if (sessionId !== recordingSessionIdRef.current) return;
+        if (isProcessingRef.current) return;
+        isProcessingRef.current = true;
 
-        if (isListeningRef.current && transcriptionEngineRef.current === 'AI_ENGINE') {
+        const currentChunks = [...chunksRef.current];
+        chunksRef.current = [];
+
+        // Immediately restart recording for the next chunk (don't wait for transcription)
+        if (isListeningRef.current && transcriptionEngineRef.current === 'AI_ENGINE' && sessionId === recordingSessionIdRef.current) {
           try {
-            mediaRecorderRef.current.start();
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
+              mediaRecorderRef.current.start();
+            }
           } catch(e) {
             console.error("Failed to restart MediaRecorder:", e);
           }
         }
+
+        if (currentChunks.length > 0) {
+          const audioBlob = new Blob(currentChunks, { type: mediaRecorder.mimeType });
+          
+          setIsTranscribing(true);
+          setLiveTranscript('🎙️ Transcribing...');
+          const text = await transcribeAudio(audioBlob);
+          setIsTranscribing(false);
+          
+          if (sessionId !== recordingSessionIdRef.current) {
+            isProcessingRef.current = false;
+            return;
+          }
+          
+          if (text && text.trim()) {
+            const cleanedText = text.trim();
+            
+            if (autoSend) {
+              if (sendTimeoutRef.current) {
+                clearTimeout(sendTimeoutRef.current);
+              }
+              
+              accumulatedSpeechRef.current = accumulatedSpeechRef.current
+                ? `${accumulatedSpeechRef.current} ${cleanedText}`
+                : cleanedText;
+                
+              setLiveTranscript(`🎙️ "${accumulatedSpeechRef.current}"`);
+              
+              sendTimeoutRef.current = setTimeout(() => {
+                if (accumulatedSpeechRef.current.trim()) {
+                  handleFinalTranscript(accumulatedSpeechRef.current.trim());
+                  accumulatedSpeechRef.current = '';
+                  setLiveTranscript('');
+                }
+              }, 2000);
+            } else {
+              setLiveTranscript(cleanedText);
+              setManualInput(prev => {
+                const joined = prev ? `${prev} ${cleanedText}` : cleanedText;
+                setSpeechNotification(joined);
+                return joined;
+              });
+            }
+          } else {
+            // If silence and autoSend is active, don't clear the accumulated transcript yet (wait for timeout)
+            if (!autoSend) {
+              setLiveTranscript('');
+            }
+          }
+        }
+
+        isProcessingRef.current = false;
       };
 
       mediaRecorder.start();
+      setLiveTranscript('🎙️ Listening...');
       
       recordingIntervalRef.current = setInterval(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        if (sessionId !== recordingSessionIdRef.current) {
+          return;
+        }
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && !isProcessingRef.current) {
           mediaRecorderRef.current.stop();
         }
-      }, 3000);
+      }, 2500); // 2.5 second chunks for faster real-time feedback
 
     } catch (err) {
       console.error("Failed to access microphone:", err);
-      setMessages(prev => [...prev, { type: 'system', text: `Mic Access Error: ${err.message || err}. Please allow microphone permissions.` }]);
-      setIsListening(false);
+      if (sessionId === recordingSessionIdRef.current) {
+        setMessages(prev => [...prev, { type: 'system', text: `Mic Access Error: ${err.message || err}. Please allow microphone permissions.` }]);
+        setIsListening(false);
+      }
     }
   };
 
@@ -372,105 +512,128 @@ export default function Dashboard() {
       streamRef.current = null;
     }
     stopVisualizer();
+    setLiveTranscript('');
+    isProcessingRef.current = false;
+
+    // Clear auto-send timeout
+    if (sendTimeoutRef.current) {
+      clearTimeout(sendTimeoutRef.current);
+      sendTimeoutRef.current = null;
+    }
+    accumulatedSpeechRef.current = '';
   };
 
   useEffect(() => {
+    const currentSessionId = ++recordingSessionIdRef.current;
+    
     // Clean up any active engines first
     stopRecording();
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch(e) {}
+      recognitionRef.current = null;
     }
 
     if (!isListening) return;
 
-    if (transcriptionEngine === 'AI_ENGINE') {
-      startRecording();
-    } else {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const rec = new SpeechRecognition();
-        rec.continuous = true;
-        rec.interimResults = true;
+    // Always use AI_ENGINE (Groq Whisper) as it is the most reliable option in Electron environment.
+    // Native Speech Recognition is commented out because Chromium native speech credentials
+    // are disabled inside Electron, causing network/credential errors.
+    startRecording(currentSessionId);
+
+    /*
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      
+      const langMap = {
+        'English': 'en-US',
+        'Hindi': 'hi-IN',
+        'German': 'de-DE',
+        'French': 'fr-FR',
+        'Japanese': 'ja-JP'
+      };
+      rec.lang = langMap[selectedLang] || 'en-US';
+
+      rec.onresult = (event) => {
+        if (rec !== recognitionRef.current) return;
         
-        const langMap = {
-          'English': 'en-US',
-          'Hindi': 'hi-IN',
-          'German': 'de-DE',
-          'French': 'fr-FR',
-          'Japanese': 'ja-JP'
-        };
-        rec.lang = langMap[selectedLang] || 'en-US';
+        let finalPart = '';
+        let interimPart = '';
 
-        rec.onresult = (event) => {
-          let finalPart = '';
-          let interimPart = '';
-
-          for (let i = 0; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalPart += event.results[i][0].transcript;
-            } else {
-              interimPart += event.results[i][0].transcript;
-            }
+        for (let i = 0; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalPart += event.results[i][0].transcript;
+          } else {
+            interimPart += event.results[i][0].transcript;
           }
-
-          const fullText = (finalPart + interimPart).trim();
-          
-          if (fullText) {
-            setManualInput(fullText);
-            setSpeechNotification(fullText);
-          }
-
-          // If a final result segment is completed and autoSend is enabled, submit it
-          if (event.results[event.results.length - 1].isFinal && autoSend && finalPart.trim()) {
-            const trimmed = finalPart.trim();
-            handleFinalTranscript(trimmed);
-            setManualInput('');
-            setSpeechNotification(null);
-            try {
-              rec.stop(); // Stops recognition, triggers onend which auto-restarts for a clean next sentence
-            } catch(e) {}
-          }
-        };
-
-        rec.onerror = (event) => {
-          console.error("Speech recognition error:", event.error);
-          if (event.error === 'not-allowed') {
-            setMessages(prev => [...prev, { type: 'system', text: 'Error: Microphone permission denied. Please allow microphone access.' }]);
-            setIsListening(false);
-          } else if (event.error === 'network') {
-            setMessages(prev => [...prev, { 
-              type: 'system', 
-              text: 'Speech recognition experienced a network issue. Please check your internet connection.' 
-            }]);
-          }
-        };
-
-        rec.onend = () => {
-          if (isSessionActiveRef.current && isListeningRef.current) {
-            try {
-              rec.start();
-            } catch(e) {
-              console.error("Failed to auto-restart speech recognition", e);
-            }
-          }
-        };
-
-        recognitionRef.current = rec;
-        try {
-          rec.start();
-        } catch(e) {
-          console.error("Failed to start speech recognition", e);
         }
-      } else {
-        setMessages(prev => [...prev, { 
-          type: 'system', 
-          text: 'Native Speech Recognition not supported. Falling back to GhostHire AI Engine...' 
-        }]);
-        setTranscriptionEngine('AI_ENGINE');
+
+        const fullText = (finalPart + interimPart).trim();
+        
+        if (rec !== recognitionRef.current) return;
+        
+        if (fullText) {
+          setManualInput(fullText);
+          setSpeechNotification(fullText);
+        }
+
+        // If a final result segment is completed and autoSend is enabled, submit it
+        if (event.results[event.results.length - 1].isFinal && autoSend && finalPart.trim()) {
+          const trimmed = finalPart.trim();
+          handleFinalTranscript(trimmed);
+          setManualInput('');
+          setSpeechNotification(null);
+          try {
+            rec.stop(); // Stops recognition, triggers onend which auto-restarts for a clean next sentence
+          } catch(e) {}
+        }
+      };
+
+      rec.onerror = (event) => {
+        if (rec !== recognitionRef.current) return;
+        
+        console.error("Speech recognition error:", event.error);
+        if (event.error === 'not-allowed') {
+          setMessages(prev => [...prev, { type: 'system', text: 'Error: Microphone permission denied. Please allow microphone access.' }]);
+          setIsListening(false);
+        } else if (event.error === 'network') {
+          setMessages(prev => [...prev, { 
+            type: 'system', 
+            text: 'Speech recognition experienced a network issue. Please check your internet connection.' 
+          }]);
+        }
+      };
+
+      rec.onend = () => {
+        if (rec !== recognitionRef.current) return;
+        
+        if (isSessionActiveRef.current && isListeningRef.current) {
+          try {
+            rec.start();
+          } catch(e) {
+            console.error("Failed to auto-restart speech recognition", e);
+          }
+        }
+      };
+
+      recognitionRef.current = rec;
+      try {
+        rec.start();
+      } catch(e) {
+        console.error("Failed to start speech recognition", e);
       }
+    } else {
+      setMessages(prev => [...prev, { 
+        type: 'system', 
+        text: 'Native Speech Recognition not supported. Falling back to GhostHire AI Engine...' 
+      }]);
+      setTranscriptionEngine('AI_ENGINE');
     }
+    */
 
     return () => {
       stopRecording();
@@ -478,6 +641,7 @@ export default function Dashboard() {
         try {
           recognitionRef.current.stop();
         } catch(e) {}
+        recognitionRef.current = null;
       }
     };
   }, [isListening, transcriptionEngine, selectedLang]);
@@ -496,7 +660,88 @@ export default function Dashboard() {
 
 
 
+  const generateSuggestions = async (questionText) => {
+    try {
+      const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
+      if (!activeKey) return;
+      
+      setLoadingSuggestions(true);
+      
+      const systemInstruction = `You are a helpful coding interview assistant.
+Given the interviewer's question/topic, generate exactly 3 short, highly relevant follow-up questions, related technical terms, or deep-dives that the interviewer is likely to ask next or the candidate should mention.
+Format your response strictly as a JSON array of 3 strings, for example: ["How does time complexity change?", "Explain the difference between X and Y", "What are the edge cases?"].
+Do not include any markdown styling, code block symbols (like \`\`\`json), or conversational text. Return only the raw JSON.`;
+
+      const modelsToTry = [githubModel, ...FALLBACK_MODELS.filter(m => m !== githubModel)];
+      let response = null;
+      let chosenModel = githubModel;
+
+      for (const currentModel of modelsToTry) {
+        chosenModel = currentModel;
+        try {
+          response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${activeKey}`
+            },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: "system", content: systemInstruction },
+                { role: "user", content: `Interviewer's question: "${questionText}"` }
+              ]
+            })
+          });
+
+          if (response.status === 429) {
+            console.warn(`Suggestions Model ${currentModel} returned 429 (Rate Limit). Trying next fallback...`);
+            continue;
+          }
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.error?.message || "";
+            if (errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("429") || errMsg.toLowerCase().includes("too many requests")) {
+              console.warn(`Suggestions Model ${currentModel} error indicates rate limit: ${errMsg}. Trying next fallback...`);
+              continue;
+            }
+            throw new Error(errMsg || `HTTP ${response.status}`);
+          }
+
+          break; // Succeeded
+        } catch (e) {
+          console.warn(`Suggestions error with ${currentModel}:`, e);
+          const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
+          if (isLast) throw e;
+        }
+      }
+
+      if (response && response.ok) {
+        const data = await response.json();
+        let rawContent = data.choices[0]?.message?.content || "";
+        rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(rawContent);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSuggestions(parsed);
+          if (chosenModel !== githubModel) {
+            console.log(`Auto-switched model to ${chosenModel} due to suggestions rate limiting.`);
+            setGithubModel(chosenModel);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to generate suggestions:", e);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
   const handleFinalTranscript = async (text) => {
+    // Clear old suggestions and generate new ones
+    setSuggestions([]);
+    generateSuggestions(text);
+
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setMessages(prev => [...prev, { type: 'interviewer', text: `"${text}"`, time }]);
     
@@ -527,22 +772,67 @@ Respond strictly in ${selectedLang}.`;
         { role: "user", content: prompt }
       ];
 
-      const response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${activeKey}`
-        },
-        body: JSON.stringify({
-          model: githubModel,
-          messages: apiMessages,
-          stream: true
-        })
-      });
+      const modelsToTry = [githubModel, ...FALLBACK_MODELS.filter(m => m !== githubModel)];
+      let response = null;
+      let chosenModel = githubModel;
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `GitHub Models API returned HTTP ${response.status}`);
+      for (const currentModel of modelsToTry) {
+        chosenModel = currentModel;
+        try {
+          response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${activeKey}`
+            },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: apiMessages,
+              stream: true
+            })
+          });
+
+          if (response.status === 429) {
+            console.warn(`Model ${currentModel} returned 429 (Rate Limit). Trying next fallback...`);
+            continue;
+          }
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.error?.message || "";
+            if (errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("429") || errMsg.toLowerCase().includes("too many requests")) {
+              console.warn(`Model ${currentModel} error indicates rate limit: ${errMsg}. Trying next fallback...`);
+              continue;
+            }
+            throw new Error(errMsg || `GitHub Models API returned HTTP ${response.status}`);
+          }
+
+          break; // Success
+        } catch (err) {
+          console.warn(`Error with model ${currentModel}:`, err);
+          const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
+          if (isLast) throw err;
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(`Failed to establish connection with any fallback model.`);
+      }
+
+      if (chosenModel !== githubModel) {
+        setMessages(prev => {
+          const aiPendingIndex = prev.findIndex(msg => msg.id === aiMessageId);
+          if (aiPendingIndex !== -1) {
+            const newMsgs = [...prev];
+            newMsgs.splice(aiPendingIndex, 0, {
+              type: 'system',
+              text: `⚠️ Rate limit on ${githubModel}. Switched to ${chosenModel}.`
+            });
+            return newMsgs;
+          }
+          return [...prev, { type: 'system', text: `⚠️ Rate limit on ${githubModel}. Switched to ${chosenModel}.` }];
+        });
+        setGithubModel(chosenModel);
       }
 
       const reader = response.body.getReader();
@@ -604,6 +894,12 @@ Respond strictly in ${selectedLang}.`;
   };
 
   const startSession = () => {
+    // Check usage limit for non-admin users
+    if (!isAdmin && usageLimitReached) {
+      setShowPaywall(true);
+      return;
+    }
+
     chatHistoryRef.current = [];
 
     const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
@@ -722,6 +1018,18 @@ Respond strictly in ${selectedLang}.`;
           </div>
         </div>
 
+        {/* Admin Access Panel */}
+        {isAdmin && (
+          <div className="p-4 pt-0">
+            <button 
+              onClick={() => navigate('/admin')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs font-bold text-purple-700 hover:bg-purple-500/20 hover:text-purple-800 transition-all cursor-pointer"
+            >
+              <Shield size={14} /> Admin Control Panel
+            </button>
+          </div>
+        )}
+
         {/* User */}
         <div className="p-4 border-t border-black/10">
           <div className="flex items-center gap-3">
@@ -756,31 +1064,6 @@ Respond strictly in ${selectedLang}.`;
                     </span>
                   ) : 'New Session'}
                 </h1>
-              </div>
-              <div className="flex items-center gap-3">
-                {/* Language Select */}
-                <div className="relative">
-                  <select value={selectedLang} onChange={e => setSelectedLang(e.target.value)}
-                    className="appearance-none bg-black/5 border border-black/10 rounded-xl px-4 py-2 pr-8 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer">
-                    <option value="English">🇺🇸 English</option>
-                    <option value="Hindi">🇮🇳 Hindi</option>
-                    <option value="German">🇩🇪 German</option>
-                    <option value="French">🇫🇷 French</option>
-                    <option value="Japanese">🇯🇵 Japanese</option>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
-                </div>
-                
-                {/* Control Panel Toggle */}
-                {isSessionActive && (
-                  <button 
-                    onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-                    className={`p-2 rounded-xl border transition-all ${isRightSidebarOpen ? 'bg-primary/10 border-primary/20 text-primary-light' : 'bg-black/5 border-black/10 text-text-secondary hover:bg-black/10'}`}
-                    title="Toggle Session Control Panel"
-                  >
-                    <Sliders size={16} />
-                  </button>
-                )}
               </div>
             </header>
 
@@ -891,6 +1174,50 @@ Respond strictly in ${selectedLang}.`;
                       <div ref={messagesEndRef} />
                     </div>
                     {/* Controls */}
+                    {/* Suggestions Panel */}
+                    {suggestions.length > 0 && (
+                      <div className="px-4 py-3 border-t border-black/5 bg-bg-secondary/40">
+                        <div className="max-w-3xl mx-auto flex flex-col gap-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Suggested follow-ups & related topics</p>
+                          <div className="flex flex-wrap gap-2 animate-fadeIn">
+                            {suggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  handleFinalTranscript(suggestion);
+                                  setSuggestions([]);
+                                }}
+                                className="px-3 py-1.5 text-xs text-primary bg-primary/5 hover:bg-primary/10 border border-primary/15 rounded-full font-medium transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Live Transcript Indicator */}
+                    {isListening && (
+                      <div className="px-4 py-2 border-t border-primary/10 bg-gradient-to-r from-primary/5 to-accent/5 backdrop-blur-md">
+                        <div className="flex items-center justify-between max-w-3xl mx-auto gap-4">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                            <p className="text-xs font-medium text-text-secondary italic truncate" style={{animation: 'fadeIn 0.3s ease-in'}}>
+                              {liveTranscript || '🎙️ Listening... Speak now'}
+                            </p>
+                          </div>
+                          <canvas 
+                            ref={canvasRef} 
+                            width="100" 
+                            height="20" 
+                            className="h-5 w-[100px] opacity-80 shrink-0" 
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="p-4 border-t border-black/10 bg-bg-secondary/50 backdrop-blur-xl">
                       <div className="flex items-center gap-3 max-w-3xl mx-auto">
                         {/* Toggle Mic */}
@@ -934,94 +1261,6 @@ Respond strictly in ${selectedLang}.`;
                   </>
                 )}
               </div>
-
-              {/* Collapsible Right Sidebar Control Center */}
-              {isSessionActive && isRightSidebarOpen && (
-                <aside className="w-80 bg-bg-secondary border-l border-black/10 flex flex-col shrink-0 overflow-y-auto animate-in slide-in-from-right duration-300">
-                  {/* Sidebar Header */}
-                  <div className="p-4 border-b border-black/10 flex items-center justify-between">
-                    <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
-                      <Sliders size={16} className="text-primary" /> Session Control Panel
-                    </h3>
-                    <button onClick={() => setIsRightSidebarOpen(false)} className="p-1 hover:bg-black/5 rounded-lg text-text-tertiary hover:text-text-primary transition-all">
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  <div className="p-4 space-y-5">
-                    {/* Speech Engine Configuration */}
-                    <div className="space-y-3">
-                      <label className="block text-xs font-bold text-text-tertiary uppercase tracking-wider">Transcription Engine</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button 
-                          onClick={() => setTranscriptionEngine('AI_ENGINE')}
-                          className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${transcriptionEngine === 'AI_ENGINE' ? 'bg-primary/10 border-primary/30 text-primary-light' : 'bg-black/5 border-black/5 text-text-secondary hover:bg-black/10'}`}
-                        >
-                          GhostHire AI
-                        </button>
-                        <button 
-                          onClick={() => setTranscriptionEngine('NATIVE')}
-                          className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${transcriptionEngine === 'NATIVE' ? 'bg-primary/10 border-primary/30 text-primary-light' : 'bg-black/5 border-black/5 text-text-secondary hover:bg-black/10'}`}
-                        >
-                          Native Web
-                        </button>
-                      </div>
-                      <p className="text-[0.65rem] text-text-tertiary leading-relaxed">
-                        {transcriptionEngine === 'AI_ENGINE' 
-                          ? '🚀 GhostHire AI Engine transcribes audio snippets using Gemini. 100% working in Electron.' 
-                          : '🌐 Native engine uses Chromium recognition. Often blocked/restricted in desktop app.'}
-                      </p>
-                    </div>
-
-                    {/* Speech Spectrum Visualizer */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-text-tertiary uppercase tracking-wider">Audio Monitor</label>
-                        {isTranscribing && (
-                          <span className="flex items-center gap-1 text-[0.65rem] text-primary-light font-semibold animate-pulse">
-                            <RefreshCw size={10} className="animate-spin" /> transcribing...
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3 bg-black/5 rounded-2xl border border-black/5">
-                        <canvas ref={canvasRef} width="280" height="50" className="w-full h-12 bg-black/10 rounded-xl" />
-                        <div className="flex justify-between items-center mt-2 text-[0.65rem] text-text-tertiary font-mono">
-                          <span className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-green-500 animate-pulse' : 'bg-text-muted'}`} />
-                            {isListening ? 'Listening' : 'Muted'}
-                          </span>
-                          <span>Lang: {selectedLang}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Auto Send Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-black/5 rounded-2xl border border-black/5">
-                      <div>
-                        <h4 className="text-xs font-bold text-text-primary">Hands-free Auto-Send</h4>
-                        <p className="text-[0.65rem] text-text-tertiary mt-0.5">Automatically send to AI once transcribed.</p>
-                      </div>
-                      <button 
-                        onClick={() => setAutoSend(!autoSend)}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${autoSend ? 'bg-primary' : 'bg-black/25'}`}
-                      >
-                        <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${autoSend ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-
-                    {/* Extra Context */}
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold text-text-tertiary uppercase tracking-wider">Extra Interview Context</label>
-                      <textarea
-                        value={extraContext}
-                        onChange={e => setExtraContext(e.target.value)}
-                        placeholder="Paste job description, specific resume achievements, key interview tips, or company culture info here. GhostHire will tailor its suggestion based on this context..."
-                        className="w-full h-32 bg-black/5 border border-black/10 rounded-xl p-3 text-xs text-text-primary placeholder:text-text-muted focus:border-primary/40 outline-none resize-none transition-all"
-                      />
-                    </div>
-                  </div>
-                </aside>
-              )}
             </div>
           </>
         )}
@@ -1195,6 +1434,8 @@ Respond strictly in ${selectedLang}.`;
                     >
                       <option value="gpt-4o-mini">GPT-4o-mini (Free / Blazing Fast & Extremely Smart)</option>
                       <option value="gpt-4o">GPT-4o (Free / Smartest Reasoning & Advanced Coding)</option>
+                      <option value="meta-llama-3.1-70b-instruct">Llama 3.1 70B (Free / High Quality Open Weights)</option>
+                      <option value="Phi-3-medium-128k-instruct">Phi-3 Medium (Free / Lightweight & Fast)</option>
                     </select>
                   </div>
                 </div>
@@ -1215,17 +1456,6 @@ Respond strictly in ${selectedLang}.`;
                       <option value="German">🇩🇪 German</option>
                       <option value="French">🇫🇷 French</option>
                       <option value="Japanese">🇯🇵 Japanese</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">Preferred Voice Engine</label>
-                    <select 
-                      value={transcriptionEngine} 
-                      onChange={e => setTranscriptionEngine(e.target.value)}
-                      className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
-                    >
-                      <option value="AI_ENGINE">GhostHire AI Transcriber (Gemini API)</option>
-                      <option value="NATIVE">Native Web Engine (Chromium SpeechRecognition)</option>
                     </select>
                   </div>
                   <div className="flex items-center justify-between pt-2">
@@ -1270,6 +1500,60 @@ Respond strictly in ${selectedLang}.`;
           </div>
         )}
       </main>
+
+      {/* ===== Paywall Modal for Non-Admin Users ===== */}
+      {showPaywall && !isAdmin && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)'}}>
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl text-center relative" style={{animation: 'float 3s ease-in-out infinite'}}>
+            {/* Decorative gradient circle */}
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, #E11D48, #F97316)'}}>
+              <Zap size={36} className="text-white" />
+            </div>
+            
+            <h2 className="text-2xl font-extrabold text-text-primary mb-2">Daily Limit Reached</h2>
+            <p className="text-text-secondary text-sm mb-6 leading-relaxed">
+              You've used your <strong>10 minutes</strong> of free access for today. Upgrade to <strong>GhostHire Pro</strong> for unlimited interview sessions!
+            </p>
+
+            {/* Plan Card */}
+            <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-5 mb-6 text-left">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Pro Plan</span>
+                <span className="text-2xl font-extrabold text-text-primary">$19<span className="text-sm font-normal text-text-secondary">/mo</span></span>
+              </div>
+              <ul className="space-y-2 text-sm text-text-secondary">
+                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Unlimited interview sessions</li>
+                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Priority AI responses</li>
+                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Session history & analytics</li>
+                <li className="flex items-center gap-2"><span className="text-primary">✓</span> All languages supported</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => {
+                handleSimulatePayment();
+                setShowPaywall(false);
+                setUsageLimitReached(false);
+              }}
+              className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:scale-105 active:scale-95"
+              style={{background: 'linear-gradient(135deg, #E11D48, #F97316)'}}
+            >
+              Upgrade to Pro — $19/mo
+            </button>
+            
+            <button
+              onClick={() => setShowPaywall(false)}
+              className="mt-3 text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+            >
+              Maybe later
+            </button>
+
+            <p className="mt-4 text-xs text-text-muted">
+              ⏳ Free access resets every 24 hours
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
