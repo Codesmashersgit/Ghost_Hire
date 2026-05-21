@@ -47,7 +47,8 @@ router.post('/signup', async (req, res) => {
       user: {
         id: savedUser._id,
         name: savedUser.name,
-        email: savedUser.email
+        email: savedUser.email,
+        isAdmin: savedUser.isAdmin
       }
     });
 
@@ -89,7 +90,8 @@ router.post('/signin', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        isAdmin: user.isAdmin
       }
     });
 

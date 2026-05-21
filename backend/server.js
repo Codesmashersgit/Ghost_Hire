@@ -27,11 +27,15 @@ import aiRoutes from './routes/ai.js';
 import sessionRoutes from './routes/session.js';
 import authRoutes from './routes/auth.js';
 import invoiceRoutes from './routes/invoice.js';
+import usageRoutes from './routes/usage.js';
+import adminRoutes from './routes/admin.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/usage', usageRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

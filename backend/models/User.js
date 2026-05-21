@@ -16,6 +16,20 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  dailyUsage: {
+    date: {
+      type: String, // stores as 'YYYY-MM-DD'
+      default: () => new Date().toISOString().split('T')[0]
+    },
+    secondsUsed: {
+      type: Number,
+      default: 0
+    }
   }
 }, { timestamps: true });
 
