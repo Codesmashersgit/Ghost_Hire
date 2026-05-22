@@ -209,18 +209,24 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const parsed = JSON.parse(userData);
-        setUser(parsed);
-        setIsAdmin(parsed.isAdmin || false);
-        fetchSessions(parsed._id);
-        fetchInvoices(parsed._id);
-        fetchUsageStatus();
-      } catch (e) {
-        console.error("Failed to parse user data");
-      }
+    
+    if (!token || !userData) {
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(userData);
+      setUser(parsed);
+      setIsAdmin(parsed.isAdmin || false);
+      fetchSessions(parsed._id);
+      fetchInvoices(parsed._id);
+      fetchUsageStatus();
+    } catch (e) {
+      console.error("Failed to parse user data");
+      navigate('/signin');
     }
   }, []);
 
@@ -333,9 +339,9 @@ export default function Dashboard() {
 
           // Centered bar drawing
           const gradient = ctx.createLinearGradient(0, height / 2 - barHeight / 2, 0, height / 2 + barHeight / 2);
-          gradient.addColorStop(0, '#E11D48'); // Primary Rose
-          gradient.addColorStop(0.5, '#F97316'); // Accent Orange
-          gradient.addColorStop(1, '#E11D48');
+          gradient.addColorStop(0, '#6366F1'); // Primary Indigo
+          gradient.addColorStop(0.5, '#06B6D4'); // Accent Cyber Cyan
+          gradient.addColorStop(1, '#6366F1');
 
           ctx.fillStyle = gradient;
           
@@ -971,157 +977,174 @@ Respond strictly in ${selectedLang}.`;
   };
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-bg-primary flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-bg-secondary border-r border-black/10 flex flex-col shrink-0 hidden lg:flex">
-        {/* Logo */}
-        <div className="p-5 border-b border-black/10">
-          <a href="/" className="flex items-center gap-2 font-extrabold text-lg">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white"><Sparkles size={16} /></div>
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">GhostHire</span>
+    <div className="h-screen max-h-screen overflow-hidden bg-bg-primary flex relative text-text-primary">
+      {/* Background Cyber Grid */}
+      <div className="absolute inset-0 pointer-events-none z-0 opacity-25">
+        <div className="absolute inset-0 cyber-grid" />
+      </div>
+
+      {/* Sidebar Command Panel */}
+      <aside className="w-64 bg-bg-secondary border-r border-white/[0.05] flex flex-col shrink-0 hidden lg:flex relative z-10">
+        {/* Brand/Logo Header */}
+        <div className="p-5 border-b border-white/[0.05] bg-white/[0.01]">
+          <a href="/" className="flex items-center gap-2.5 font-black text-lg group">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-all"><Sparkles size={16} /></div>
+            <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent font-extrabold tracking-wide">GhostHire</span>
           </a>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
+        {/* Tab Command List */}
+        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           {[
-            { icon: <Play size={18} />, label: 'New Session' },
-            { icon: <Clock size={18} />, label: 'Session History' },
-            { icon: <FileText size={18} />, label: 'My Documents' },
-            { icon: <CreditCard size={18} />, label: 'Credits & Billing' },
-            { icon: <Settings size={18} />, label: 'Settings' },
-            { icon: <HelpCircle size={18} />, label: 'Help & Support' },
+            { icon: <Play size={16} />, label: 'New Session' },
+            { icon: <Clock size={16} />, label: 'Session History' },
+            { icon: <FileText size={16} />, label: 'My Documents' },
+            { icon: <CreditCard size={16} />, label: 'Credits & Billing' },
+            { icon: <Settings size={16} />, label: 'Settings' },
+            { icon: <HelpCircle size={16} />, label: 'Help & Support' },
           ].map((item, i) => (
             <button 
               key={i} 
               onClick={() => setActiveTab(item.label)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === item.label ? 'bg-primary/15 text-primary-light border border-primary/20' : 'text-text-secondary hover:text-text-primary hover:bg-black/5'}`}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                activeTab === item.label 
+                  ? 'bg-primary/20 text-primary-light border border-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.12)]' 
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.03] border border-transparent'
+              }`}
             >
-              {item.icon} {item.label}
+              <span className={activeTab === item.label ? 'text-accent' : 'text-text-tertiary'}>{item.icon}</span> 
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        {/* Credits Card */}
+        {/* Dynamic Credits Dashboard */}
         <div className="p-4">
-          <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-xl">
+          <div className="p-4 bg-bg-tertiary/40 border border-white/[0.06] rounded-2xl shadow-inner backdrop-blur-md">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-text-tertiary">Credits</span>
-              <span className="text-xs text-primary-light font-mono">∞ Free Trial</span>
+              <span className="text-[0.62rem] font-bold uppercase tracking-[1.5px] text-text-tertiary">Copilot Credits</span>
+              <span className="text-[0.62rem] text-primary-light font-mono font-bold bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">∞ Free Beta</span>
             </div>
-            <div className="w-full h-1.5 bg-black/5 rounded-full overflow-hidden">
-              <div className="h-full w-full bg-gradient-to-r from-primary to-accent rounded-full" />
+            <div className="w-full h-1.5 bg-white/[0.04] rounded-full overflow-hidden mb-3 border border-white/[0.02]">
+              <div className="h-full w-full bg-gradient-to-r from-primary to-accent rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
             </div>
-            <button onClick={handleSimulatePayment} className="w-full mt-3 py-2 text-xs font-semibold text-text-primary bg-gradient-to-r from-primary to-accent rounded-lg hover:shadow-lg transition-all">
-              Upgrade Plan
+            <button onClick={handleSimulatePayment} className="w-full py-2.5 text-[0.68rem] font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_15px_rgba(99,102,241,0.3)] hover:-translate-y-0.5 transition-all">
+              Upgrade Candidate Plan
             </button>
           </div>
         </div>
 
-        {/* Admin Access Panel */}
+        {/* Administrative Shortcut */}
         {isAdmin && (
           <div className="p-4 pt-0">
             <button 
               onClick={() => navigate('/admin')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs font-bold text-purple-700 hover:bg-purple-500/20 hover:text-purple-800 transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-[0.68rem] font-black text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all cursor-pointer shadow-sm"
             >
-              <Shield size={14} /> Admin Control Panel
+              <Shield size={13} className="text-purple-400" /> Admin Command Center
             </button>
           </div>
         )}
 
-        {/* User */}
-        <div className="p-4 border-t border-black/10">
+        {/* User Account Capsule */}
+        <div className="p-4 border-t border-white/[0.05] bg-white/[0.01]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white text-xs font-black shadow-[0_0_12px_rgba(99,102,241,0.25)] relative">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-success rounded-full border-2 border-bg-secondary shadow-[0_0_8px_#10B981]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{user?.name || 'Guest User'}</p>
-              <p className="text-[0.7rem] text-text-tertiary truncate">{user?.email || 'Login to sync'}</p>
+              <p className="text-xs font-bold text-text-primary truncate">{user?.name || 'Candidate User'}</p>
+              <p className="text-[0.62rem] text-text-tertiary font-medium truncate mt-0.5">{user?.email || 'Standalone Mode'}</p>
             </div>
-            <button onClick={() => {
-              localStorage.removeItem('user');
-              localStorage.removeItem('token');
-              navigate('/');
-            }} className="text-text-tertiary hover:text-text-primary transition-colors"><LogOut size={16} /></button>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                navigate('/');
+              }} 
+              className="text-text-tertiary hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-all"
+              title="Logout Session"
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Workspace Frame */}
+      <main className="flex-1 flex flex-col overflow-hidden relative z-10 bg-bg-primary/95">
         {activeTab === 'New Session' && (
           <>
-            {/* Top Bar */}
-            <header className="flex items-center justify-between px-6 py-4 border-b border-black/10 bg-bg-secondary/50 backdrop-blur-xl">
+            {/* Header Stage Bar */}
+            <header className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
               <div className="flex items-center gap-4">
-                <h1 className="text-lg font-bold">
+                <h1 className="text-sm font-bold text-text-primary">
                   {isSessionActive ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(255,68,68,0.5)]" />
-                      Live Session
+                    <span className="flex items-center gap-2 bg-danger/10 border border-danger/20 px-3 py-1 rounded-full text-xs font-black text-danger-light">
+                      <span className="w-2 h-2 bg-danger rounded-full animate-ping" />
+                      STEALTH SESSION IN PROGRESS
                     </span>
-                  ) : 'New Session'}
+                  ) : 'COPILOT WORKSPACE'}
                 </h1>
               </div>
             </header>
 
-            {/* Content */}
+            {/* Stage Workspace */}
             <div className="flex-1 flex overflow-hidden">
-              {/* Transcript Area */}
-              <div className="flex-1 flex flex-col">
+              {/* Audio/Text Live Stream Area */}
+              <div className="flex-1 flex flex-col bg-bg-primary">
                 {!isSessionActive ? (
-                  /* Start Screen */
+                  /* Inactive workspace start prompt */
                   <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="text-center max-w-md">
-                      <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                        <Mic size={36} className="text-primary" />
+                    <div className="text-center max-w-sm p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-3xl backdrop-blur-md shadow-2xl">
+                      <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/25 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(99,102,241,0.2)] animate-pulse">
+                        <Mic size={32} className="text-primary-light" />
                       </div>
-                      <h2 className="text-2xl font-bold mb-3">Start a New Session</h2>
-                      <p className="text-sm text-text-secondary leading-relaxed mb-8">
-                        GhostHire will listen to your interview and provide real-time AI-generated responses. Get coding support, behavioral answers, and personalized context instantly.
+                      <h2 className="text-lg font-black mb-2 text-text-primary">Start Live Copilot</h2>
+                      <p className="text-xs text-text-secondary leading-relaxed mb-8 px-2 font-medium">
+                        GhostHire will listen and transcribe audio feeds locally, generating sub-second suggestions, algorithms, and behavioral STAR outlines.
                       </p>
-                      <div className="flex gap-3 justify-center flex-wrap">
-                        <button onClick={startSession}
-                          className="px-8 py-3.5 text-sm font-semibold text-text-primary bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_15px_rgba(108,92,231,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(108,92,231,0.4)] transition-all duration-300 flex items-center gap-2">
-                          <Play size={18} /> Start Session
-                        </button>
-                      </div>
+                      <button 
+                        onClick={startSession}
+                        className="px-8 py-3.5 text-xs font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2 mx-auto"
+                      >
+                        <Play size={14} /> INITIALIZE SESSION
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  /* Live Session */
+                  /* Active Stealth Stream Feed */
                   <>
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 relative">
                       {speechNotification && (
-                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-all duration-300">
-                          <div className="flex items-center gap-3 px-5 py-3 bg-bg-secondary/90 border border-primary/20 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.15)] backdrop-blur-xl text-text-primary text-xs font-semibold relative overflow-hidden">
-                            {/* Top decorative line */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 transition-all duration-300 animate-fadeIn">
+                          <div className="flex items-center gap-3 px-5 py-3 bg-[#0B0C16]/95 border border-primary/30 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl text-text-primary text-xs font-semibold relative overflow-hidden">
+                            {/* Decorative banner bar */}
                             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent" />
                             
-                            <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary animate-pulse shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light animate-pulse shrink-0">
                               <Mic size={12} />
                             </div>
                             
                             <div className="flex-1 min-w-0">
-                              <p className="font-extrabold uppercase tracking-wider text-[0.65rem] text-primary-light">Voice Transcribed Preview</p>
-                              <p className="truncate text-text-secondary mt-0.5">"{speechNotification}"</p>
+                              <p className="font-black uppercase tracking-wider text-[0.62rem] text-primary-light">Real-Time Acoustic Signal</p>
+                              <p className="truncate text-text-secondary mt-0.5 font-medium">"{speechNotification}"</p>
                             </div>
                             
-                            <div className="flex gap-1 shrink-0">
+                            <div className="flex gap-1.5 shrink-0">
                               <button 
                                 onClick={() => {
                                   setManualInput('');
                                   setSpeechNotification(null);
                                 }} 
-                                className="px-2.5 py-1 bg-black/5 hover:bg-black/10 text-text-secondary font-bold rounded-lg transition-all text-[0.65rem]"
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-text-secondary font-bold rounded-lg transition-all text-[0.62rem] border border-white/[0.04]"
                               >
                                 Clear
                               </button>
                               <button 
                                 onClick={handleSendManualMessage} 
-                                className="px-3 py-1 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-lg hover:shadow-md transition-all text-[0.65rem]"
+                                className="px-3 py-1 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-lg hover:shadow-md transition-all text-[0.62rem] border border-white/10"
                               >
                                 Send
                               </button>
@@ -1129,42 +1152,43 @@ Respond strictly in ${selectedLang}.`;
                           </div>
                         </div>
                       )}
+                      
                       {messages.map((msg, i) => (
                         <div key={i} className={`max-w-2xl ${msg.type === 'ai' ? '' : msg.type === 'system' ? 'mx-auto text-center' : ''}`}>
                           {msg.type === 'system' ? (
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-xs text-primary-light font-medium">
-                              <Zap size={12} /> {msg.text}
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-[0.68rem] text-primary-light font-bold">
+                              <Zap size={11} className="text-accent" /> {msg.text}
                             </div>
                           ) : msg.type === 'interviewer' ? (
-                            <div className="p-4 bg-black/5 border border-black/10 rounded-2xl">
+                            <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl shadow-sm">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-text-tertiary">🎙️ Interviewer</span>
-                                <span className="text-[0.65rem] text-text-muted font-mono">{msg.time}</span>
+                                <span className="text-[0.65rem] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-1">🎙️ Interviewer Signal</span>
+                                <span className="text-[0.6rem] text-text-muted font-mono">{msg.time}</span>
                               </div>
-                              <p className="text-sm text-text-secondary">{msg.text}</p>
+                              <p className="text-xs sm:text-sm text-text-secondary font-medium">{msg.text}</p>
                             </div>
                           ) : (
-                            <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-2xl ml-8 relative group">
+                            <div className="p-4 bg-gradient-to-br from-primary/15 via-primary/5 to-accent/5 border border-primary/35 rounded-2xl ml-8 relative group shadow-[0_0_20px_rgba(99,102,241,0.06)]">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-primary-light flex items-center gap-1">
-                                  <Zap size={12} className={msg.isStreaming ? 'animate-bounce' : ''} /> 
+                                <span className="text-[0.65rem] font-bold uppercase tracking-wider text-primary-light flex items-center gap-1">
+                                  <Zap size={12} className={msg.isStreaming ? 'animate-bounce text-accent' : 'text-accent'} /> 
                                   GhostHire Suggestion
                                 </span>
-                                <span className="text-[0.65rem] text-text-muted font-mono">{msg.time}</span>
+                                <span className="text-[0.6rem] text-text-muted font-mono ml-auto">{msg.time}</span>
                               </div>
                               {msg.text ? (
-                                <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+                                <p className="text-xs sm:text-sm text-text-primary leading-relaxed whitespace-pre-wrap font-medium">
                                   {msg.text}
                                   {msg.isStreaming && <span className="inline-block w-1.5 h-4 ml-1 bg-primary-light animate-pulse align-middle" />}
                                 </p>
                               ) : (
-                                <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                                <div className="flex items-center gap-2 text-[0.68rem] text-text-tertiary">
                                   <div className="flex gap-1">
                                     <span className="w-1.5 h-1.5 bg-primary-light rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                     <span className="w-1.5 h-1.5 bg-primary-light rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                     <span className="w-1.5 h-1.5 bg-primary-light rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                   </div>
-                                  <span>AI is analyzing context...</span>
+                                  <span>AI Copilot is generating response...</span>
                                 </div>
                               )}
                             </div>
@@ -1173,12 +1197,12 @@ Respond strictly in ${selectedLang}.`;
                       ))}
                       <div ref={messagesEndRef} />
                     </div>
-                    {/* Controls */}
-                    {/* Suggestions Panel */}
+
+                    {/* Copilot Suggestions Board */}
                     {suggestions.length > 0 && (
-                      <div className="px-4 py-3 border-t border-black/5 bg-bg-secondary/40">
+                      <div className="px-5 py-3 border-t border-white/[0.04] bg-bg-secondary/40">
                         <div className="max-w-3xl mx-auto flex flex-col gap-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Suggested follow-ups & related topics</p>
+                          <p className="text-[0.58rem] font-bold uppercase tracking-[1.5px] text-text-tertiary">Predictive Follow-ups & Sub-topics</p>
                           <div className="flex flex-wrap gap-2 animate-fadeIn">
                             {suggestions.map((suggestion, idx) => (
                               <button
@@ -1187,7 +1211,7 @@ Respond strictly in ${selectedLang}.`;
                                   handleFinalTranscript(suggestion);
                                   setSuggestions([]);
                                 }}
-                                className="px-3 py-1.5 text-xs text-primary bg-primary/5 hover:bg-primary/10 border border-primary/15 rounded-full font-medium transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                                className="px-3.5 py-1.5 text-xs text-primary-light bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary-light/40 rounded-full font-bold transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                               >
                                 {suggestion}
                               </button>
@@ -1196,65 +1220,73 @@ Respond strictly in ${selectedLang}.`;
                         </div>
                       </div>
                     )}
-                    {/* Live Transcript Indicator */}
+
+                    {/* Live Waveform Indicator */}
                     {isListening && (
-                      <div className="px-4 py-2 border-t border-primary/10 bg-gradient-to-r from-primary/5 to-accent/5 backdrop-blur-md">
+                      <div className="px-5 py-2 border-t border-primary/10 bg-gradient-to-r from-primary/5 to-accent/5 backdrop-blur-md">
                         <div className="flex items-center justify-between max-w-3xl mx-auto gap-4">
                           <div className="flex items-center gap-2.5 truncate">
                             <span className="relative flex h-2 w-2 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                             </span>
-                            <p className="text-xs font-medium text-text-secondary italic truncate" style={{animation: 'fadeIn 0.3s ease-in'}}>
-                              {liveTranscript || '🎙️ Listening... Speak now'}
+                            <p className="text-[0.68rem] font-bold text-text-secondary italic truncate">
+                              {liveTranscript || '🎙️ Listening to acoustic speaker loop...'}
                             </p>
                           </div>
                           <canvas 
                             ref={canvasRef} 
                             width="100" 
                             height="20" 
-                            className="h-5 w-[100px] opacity-80 shrink-0" 
+                            className="h-5 w-[100px] opacity-75 shrink-0" 
                           />
                         </div>
                       </div>
                     )}
-                    <div className="p-4 border-t border-black/10 bg-bg-secondary/50 backdrop-blur-xl">
+
+                    {/* Input Control Deck */}
+                    <div className="p-4 border-t border-white/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
                       <div className="flex items-center gap-3 max-w-3xl mx-auto">
-                        {/* Toggle Mic */}
+                        {/* Audio listening switch */}
                         <button 
                           onClick={toggleListening} 
-                          className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0 relative group ${
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group ${
                             isListening 
-                              ? 'bg-gradient-to-tr from-primary to-accent border-primary/30 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] animate-pulse' 
-                              : 'bg-black/5 border-black/10 text-text-secondary hover:bg-black/10 hover:border-black/20'
+                              ? 'bg-gradient-to-tr from-primary to-accent border-primary/30 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
+                              : 'bg-white/[0.03] border-white/[0.06] text-text-secondary hover:bg-white/[0.06] hover:border-white/[0.1]'
                           }`}
-                          title={isListening ? "Mute Microphone" : "Activate Speech Copilot"}
+                          title={isListening ? "Mute Acoustic Mic" : "Start Acoustic Capture"}
                         >
-                          {isListening ? <Mic size={20} /> : <MicOff size={20} />}
-                          <span className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-bg-secondary transition-all ${
-                            isListening ? 'bg-green-500' : 'bg-text-muted'
+                          {isListening ? <Mic size={18} className="animate-pulse" /> : <MicOff size={18} />}
+                          <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg-secondary transition-all ${
+                            isListening ? 'bg-success' : 'bg-text-muted'
                           }`} />
                         </button>
                         
-                        {/* Manual Input Bar */}
+                        {/* Text command input */}
                         <div className="flex-1 flex gap-2">
                           <input 
                             type="text"
                             value={manualInput}
                             onChange={e => setManualInput(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') handleSendManualMessage(); }}
-                            placeholder={isListening ? "Listening... or type message manually..." : "Type message manually..."}
-                            className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-primary/40 outline-none transition-all"
+                            placeholder={isListening ? "Listening speakers... or type manual question..." : "Type manual question..."}
+                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-light/40 outline-none transition-all"
                           />
-                          <button onClick={handleSendManualMessage} className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0">
-                            Send <ArrowRight size={14} />
+                          <button 
+                            onClick={handleSendManualMessage} 
+                            className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all flex items-center gap-1.5 shrink-0"
+                          >
+                            Send <ArrowRight size={13} />
                           </button>
                         </div>
 
-                        {/* Stop Session */}
-                        <button onClick={stopSession}
-                          className="px-4 py-2.5 text-sm font-semibold text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all flex items-center gap-1.5 shrink-0">
-                          <Square size={14} /> End
+                        {/* Stop stream */}
+                        <button 
+                          onClick={stopSession}
+                          className="px-4 py-2.5 text-xs font-bold text-danger bg-danger/10 border border-danger/20 rounded-xl hover:bg-danger/20 transition-all flex items-center gap-1.5 shrink-0"
+                        >
+                          <Square size={12} /> End
                         </button>
                       </div>
                     </div>
@@ -1266,33 +1298,39 @@ Respond strictly in ${selectedLang}.`;
         )}
 
         {activeTab === 'Session History' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-2">Session History</h2>
-            <p className="text-sm text-text-secondary mb-6">Review your past interviews and AI suggestions.</p>
+          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+            <h2 className="text-xl font-black mb-1 text-text-primary">Session History</h2>
+            <p className="text-xs text-text-secondary mb-6 font-semibold">Review your past interview solutions and AI suggestions.</p>
             
             {loadingSessions ? (
-              <p className="text-sm text-text-tertiary">Loading history...</p>
+              <p className="text-xs text-text-tertiary">Retrieving history logs...</p>
             ) : sessionsList.length === 0 ? (
-              <p className="text-sm text-text-tertiary">No past sessions found. Start a session to save history.</p>
+              <div className="p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl text-center max-w-xl">
+                <p className="text-xs text-text-tertiary font-semibold">No past sessions found. Completed sessions are saved automatically.</p>
+              </div>
             ) : (
               <div className="space-y-4 max-w-4xl">
                 {sessionsList.map((session, i) => (
-                  <div key={i} className="p-5 bg-bg-secondary border border-black/10 rounded-2xl flex items-center justify-between hover:border-primary/30 transition-all">
+                  <div key={i} className="p-5 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl flex items-center justify-between hover:border-primary-light/35 hover:bg-bg-tertiary/40 transition-all">
                     <div>
-                      <span className="text-xs text-primary-light font-semibold">
-                        {new Date(session.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      <span className="text-[0.62rem] text-primary-light font-black uppercase tracking-[1px] bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                        {new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <h3 className="text-base font-bold text-text-primary mt-1">{session.title}</h3>
-                      <div className="flex gap-4 mt-2 text-xs text-text-tertiary">
+                      <h3 className="text-sm sm:text-base font-bold text-text-primary mt-2">{session.title}</h3>
+                      <div className="flex gap-4 mt-2 text-[0.65rem] text-text-tertiary font-semibold">
                         <span>Duration: {session.duration}</span>
-                        <span>QA Count: {session.transcript?.length || 0} items</span>
+                        <span>•</span>
+                        <span>QA Items: {session.transcript?.length || 0} transcript logs</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 bg-success/15 border border-success/20 text-success text-xs font-semibold rounded-full">Completed</span>
-                      <button onClick={() => {
-                        alert(JSON.stringify(session.transcript, null, 2));
-                      }} className="px-4 py-2 bg-black/5 hover:bg-black/10 border border-black/10 rounded-xl text-xs font-bold text-text-primary transition-all">View Transcript</button>
+                      <span className="px-2.5 py-1 bg-success/10 border border-success/20 text-success text-[0.62rem] font-bold rounded-full">Saved</span>
+                      <button 
+                        onClick={() => alert(JSON.stringify(session.transcript, null, 2))} 
+                        className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-xl text-xs font-bold text-text-primary transition-all"
+                      >
+                        Show Logs
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1302,51 +1340,53 @@ Respond strictly in ${selectedLang}.`;
         )}
 
         {activeTab === 'My Documents' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-2">User Guide & Documentation</h2>
-            <p className="text-sm text-text-secondary mb-8">Learn how to maximize your GhostHire copilot for interview success.</p>
+          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+            <h2 className="text-xl font-black mb-1 text-text-primary">User Guide & Stealth Support</h2>
+            <p className="text-xs text-text-secondary mb-8 font-semibold">Learn how to maximize your GhostHire copilot for interview dominance.</p>
             
             <div className="max-w-4xl space-y-6">
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl">
-                <h3 className="text-lg font-bold text-text-primary mb-3">🚀 Getting Started in 3 Steps</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl shadow-sm">
+                <h3 className="text-sm font-black text-text-primary mb-4 uppercase tracking-wider flex items-center gap-2 border-b border-white/[0.04] pb-2">
+                  <Play size={14} className="text-accent" /> 🚀 Instant Launch Checklist
+                </h3>
                 <div className="space-y-4">
                   <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-sm shrink-0">1</div>
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-xs shrink-0">1</div>
                     <div>
-                      <h4 className="text-sm font-bold text-text-primary">Configure Settings</h4>
-                      <p className="text-xs text-text-secondary mt-1">Select your preferred AI Engine (GPT-4, Claude, or Gemini) and Response Language (English, Hindi, etc.) at the top header.</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">Choose AI Brain Model</h4>
+                      <p className="text-[0.72rem] text-text-secondary mt-0.5">Select your preferred model (e.g. GPT-4o, Llama 3.1) in Settings to match technical depth.</p>
                     </div>
                   </div>
                   <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-sm shrink-0">2</div>
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-xs shrink-0">2</div>
                     <div>
-                      <h4 className="text-sm font-bold text-text-primary">Start a New Session</h4>
-                      <p className="text-xs text-text-secondary mt-1">Click the "Start Session" button. Ensure you grant microphone access so that GhostHire can listen to interviewer's questions.</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">Enable Microphone Hook</h4>
+                      <p className="text-[0.72rem] text-text-secondary mt-0.5">Initialize a session and toggle acoustic processing. GhostHire captures incoming speaker streams locally.</p>
                     </div>
                   </div>
                   <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-sm shrink-0">3</div>
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light font-bold text-xs shrink-0">3</div>
                     <div>
-                      <h4 className="text-sm font-bold text-text-primary">Speak or Type</h4>
-                      <p className="text-xs text-text-secondary mt-1">As the interviewer speaks, the AI will transcribe and generate answers instantly. You can also manually type any question in the control panel input and hit Send.</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">Read Streaming Output</h4>
+                      <p className="text-[0.72rem] text-text-secondary mt-0.5">AI structures solutions into clear paragraphs and visual code blocks. Use manual input to patch gaps.</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl">
-                <h3 className="text-lg font-bold text-text-primary mb-3">🔒 Stealth Mode Safety</h3>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  GhostHire is designed with extreme stealth features. Our native window architecture blocks capture engines. When you share your screen via Zoom, Microsoft Teams, Google Meet, or Discord, other participants will only see a black window instead of GhostHire. Keep the app open safely on the side of your monitor!
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl">
+                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-white/[0.04] pb-2">🔒 Stealth Screen Shielding</h3>
+                <p className="text-[0.72rem] text-text-secondary leading-relaxed font-semibold">
+                  GhostHire operates at deep desktop levels using hardware window flags. When sharing desktops via Zoom, Teams, Meet or specialized hiring code checkers, they only capture a completely transparent, dark or empty canvas. Your copilot operates in absolute privacy.
                 </p>
               </div>
 
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl">
-                <h3 className="text-lg font-bold text-text-primary mb-3">💡 Best Practices</h3>
-                <ul className="list-disc list-inside space-y-2 text-xs text-text-secondary">
-                  <li><strong>Quiet Environment:</strong> Speak in a quiet room so the microphone doesn't pick up ambient background noise.</li>
-                  <li><strong>Clear Audio:</strong> If using headphones, make sure your default system mic is selected in system audio settings.</li>
-                  <li><strong>Use Extra Context:</strong> Paste the target job description or company-specific values into the "Extra Context" section on the right side. This forces the AI to output responses tailored to that job description!</li>
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl">
+                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-white/[0.04] pb-2">💡 Tips for 100% Accuracy</h3>
+                <ul className="space-y-2 text-[0.72rem] text-text-secondary list-none">
+                  <li className="flex items-center gap-2"><span className="text-accent font-bold">▪</span> <strong>Ideal Room:</strong> Work in minimal reverb to help neural phonetic decoders.</li>
+                  <li className="flex items-center gap-2"><span className="text-accent font-bold">▪</span> <strong>System Driver:</strong> Use default system audio outputs. Headphones operate fully.</li>
+                  <li className="flex items-center gap-2"><span className="text-accent font-bold">▪</span> <strong>Context Injection:</strong> Paste job values, descriptions, or company rubrics inside Settings.</li>
                 </ul>
               </div>
             </div>
@@ -1354,47 +1394,47 @@ Respond strictly in ${selectedLang}.`;
         )}
 
         {activeTab === 'Credits & Billing' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-2">Credits & Billing</h2>
-            <p className="text-sm text-text-secondary mb-6">Manage your plan subscription and credit usage.</p>
+          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+            <h2 className="text-xl font-black mb-1 text-text-primary">Credits & Invoices</h2>
+            <p className="text-xs text-text-secondary mb-6 font-semibold">Track plan states, billings, and credit usages.</p>
             
             <div className="max-w-4xl space-y-8">
-              <div className="p-6 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 border border-primary/25 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary-light">Current Plan</span>
-                  <h3 className="text-2xl font-black text-text-primary mt-1">Free Trial Mode</h3>
-                  <p className="text-sm text-text-secondary mt-1">Enjoy unlimited credits during the beta phase.</p>
+                  <span className="text-[0.62rem] font-bold uppercase tracking-wider text-primary-light bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">Candidate Plan</span>
+                  <h3 className="text-xl font-black text-text-primary mt-2">Unlimited Beta Trial</h3>
+                  <p className="text-xs text-text-secondary mt-1 font-semibold">Uncapped credit access during our public framework launch.</p>
                 </div>
                 <div className="text-center md:text-right shrink-0">
-                  <div className="text-3xl font-black text-text-primary">∞ <span className="text-sm font-medium text-text-tertiary">Credits remaining</span></div>
-                  <button onClick={handleSimulatePayment} className="mt-3 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-lg transition-all">Upgrade to Pro</button>
+                  <div className="text-2xl font-black text-text-primary">∞ <span className="text-xs font-medium text-text-tertiary">Credits active</span></div>
+                  <button onClick={handleSimulatePayment} className="mt-3 px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all">Upgrade Pro</button>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-base font-bold text-text-primary mb-4">Payment Invoices</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-text-primary mb-4">Invoice Logs</h3>
                 {loadingInvoices ? (
-                  <p className="text-sm text-text-tertiary">Loading invoices...</p>
+                  <p className="text-xs text-text-tertiary">Loading invoice records...</p>
                 ) : invoicesList.length === 0 ? (
-                  <div className="p-6 bg-black/5 border border-black/10 rounded-2xl text-center">
-                    <p className="text-sm text-text-secondary">No invoices found. Invoices are generated dynamically when you perform a payment.</p>
-                    <button onClick={handleSimulatePayment} className="mt-3 px-5 py-2 text-xs font-bold text-white bg-primary rounded-lg hover:bg-primary-light transition-all">
-                      Upgrade to Pro ($19.00)
+                  <div className="p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl text-center max-w-2xl">
+                    <p className="text-xs text-text-secondary font-semibold">No transactions active. Invoices reflect payment completions.</p>
+                    <button onClick={handleSimulatePayment} className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl">
+                      Unlock Full Pro Access (₹1,499)
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-bg-secondary border border-black/10 rounded-2xl divide-y divide-black/10 overflow-hidden">
+                  <div className="bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl divide-y divide-white/[0.04] overflow-hidden">
                     {invoicesList.map((inv, i) => (
-                      <div key={i} className="p-4 flex items-center justify-between text-sm">
+                      <div key={i} className="p-4 flex items-center justify-between text-xs sm:text-sm hover:bg-white/[0.01] transition-colors">
                         <div>
                           <span className="font-bold text-text-primary">{inv.invoiceId}</span>
-                          <span className="text-text-tertiary ml-4">
-                            {new Date(inv.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                          <span className="text-[0.68rem] text-text-tertiary font-semibold ml-4">
+                            {new Date(inv.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="font-semibold text-text-primary">{inv.amount}</span>
-                          <span className="px-2 py-0.5 bg-success/15 border border-success/20 text-success text-xs font-semibold rounded">{inv.status}</span>
+                          <span className="font-bold text-text-primary">{inv.amount}</span>
+                          <span className="px-2 py-0.5 bg-success/15 border border-success/20 text-success text-[0.62rem] font-bold rounded-md uppercase">Paid</span>
                         </div>
                       </div>
                     ))}
@@ -1406,68 +1446,68 @@ Respond strictly in ${selectedLang}.`;
         )}
 
         {activeTab === 'Settings' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-2">Settings</h2>
-            <p className="text-sm text-text-secondary mb-6">Customize GhostHire to align with your setup.</p>
+          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+            <h2 className="text-xl font-black mb-1 text-text-primary">System Settings</h2>
+            <p className="text-xs text-text-secondary mb-6 font-semibold">Configure AI agents, model routing, and inputs.</p>
             
             <div className="max-w-3xl space-y-6">
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-text-primary border-b border-black/5 pb-2">Stealth Protection</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Stealth Shields</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-text-primary">Content Protection</h4>
-                    <p className="text-xs text-text-secondary mt-0.5">Prevents capture software (OBS, Zoom, Discord) from viewing the app window.</p>
+                    <h4 className="text-xs sm:text-sm font-bold text-text-primary">Dynamic Anti-Capture</h4>
+                    <p className="text-[0.72rem] text-text-secondary mt-0.5 leading-relaxed max-w-md">Forces deep hardware window masks, blackening screenshare viewports (Zoom, OBS, Teams).</p>
                   </div>
-                  <span className="px-3 py-1 bg-primary/15 border border-primary/20 text-primary-light text-xs font-semibold rounded-full">Always On</span>
+                  <span className="px-3 py-1 bg-success/10 border border-success/20 text-success text-[0.62rem] font-bold rounded-full uppercase tracking-wider shadow-inner">ACTIVE</span>
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-text-primary border-b border-black/5 pb-2">AI Copilot Model</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Model Selection</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">GitHub AI Model</label>
+                    <label className="block text-[0.62rem] font-bold text-text-tertiary uppercase tracking-[1.5px] mb-2">Primary AI Intelligence</label>
                     <select 
                       value={githubModel} 
                       onChange={e => setGithubModel(e.target.value)}
-                      className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
+                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
                     >
-                      <option value="gpt-4o-mini">GPT-4o-mini (Free / Blazing Fast & Extremely Smart)</option>
-                      <option value="gpt-4o">GPT-4o (Free / Smartest Reasoning & Advanced Coding)</option>
-                      <option value="meta-llama-3.1-70b-instruct">Llama 3.1 70B (Free / High Quality Open Weights)</option>
-                      <option value="Phi-3-medium-128k-instruct">Phi-3 Medium (Free / Lightweight & Fast)</option>
+                      <option value="gpt-4o-mini" className="bg-bg-tertiary text-text-primary">GPT-4o-mini (Uncapped • Sub-second Latency)</option>
+                      <option value="gpt-4o" className="bg-bg-tertiary text-text-primary">GPT-4o (High-level Algorithms & Logic)</option>
+                      <option value="meta-llama-3.1-70b-instruct" className="bg-bg-tertiary text-text-primary">Llama 3.1 70B (Complex Explanations)</option>
+                      <option value="Phi-3-medium-128k-instruct" className="bg-bg-tertiary text-text-primary">Phi-3 Medium (Lightweight Summary)</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-text-primary border-b border-black/5 pb-2">Audio & Input Settings</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Audio & Languages</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">Speech Language Model</label>
+                    <label className="block text-[0.62rem] font-bold text-text-tertiary uppercase tracking-[1.5px] mb-2">Target Speech/Transcript Language</label>
                     <select 
                       value={selectedLang} 
                       onChange={e => setSelectedLang(e.target.value)}
-                      className="w-full bg-black/5 border border-black/10 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-primary/40 transition-colors cursor-pointer"
+                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
                     >
-                      <option value="English">🇺🇸 English</option>
-                      <option value="Hindi">🇮🇳 Hindi</option>
-                      <option value="German">🇩🇪 German</option>
-                      <option value="French">🇫🇷 French</option>
-                      <option value="Japanese">🇯🇵 Japanese</option>
+                      <option value="English" className="bg-bg-tertiary text-text-primary">🇺🇸 English</option>
+                      <option value="Hindi" className="bg-bg-tertiary text-text-primary">🇮🇳 Hindi</option>
+                      <option value="German" className="bg-bg-tertiary text-text-primary">🇩🇪 German</option>
+                      <option value="French" className="bg-bg-tertiary text-text-primary">🇫🇷 French</option>
+                      <option value="Japanese" className="bg-bg-tertiary text-text-primary">🇯🇵 Japanese</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
                     <div>
-                      <h4 className="text-sm font-bold text-text-primary">Hands-free Auto-Send</h4>
-                      <p className="text-xs text-text-secondary mt-0.5">Automatically send questions to AI once transcribed.</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">Acoustic Auto-Submit</h4>
+                      <p className="text-[0.72rem] text-text-secondary mt-0.5">Stream transcripts directly to AI on speech pauses.</p>
                     </div>
                     <button 
                       onClick={() => setAutoSend(!autoSend)}
-                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${autoSend ? 'bg-primary' : 'bg-black/25'}`}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${autoSend ? 'bg-primary-light' : 'bg-white/[0.08]'}`}
                     >
-                      <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${autoSend ? 'translate-x-4' : 'translate-x-0'}`} />
+                      <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${autoSend ? 'translate-x-4 shadow-sm' : 'translate-x-0'}`} />
                     </button>
                   </div>
                 </div>
@@ -1477,21 +1517,21 @@ Respond strictly in ${selectedLang}.`;
         )}
 
         {activeTab === 'Help & Support' && (
-          <div className="flex-1 p-8 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-2">Help & Support</h2>
-            <p className="text-sm text-text-secondary mb-6">Need help? We've got you covered.</p>
+          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+            <h2 className="text-xl font-black mb-1 text-text-primary">Candidate Support</h2>
+            <p className="text-xs text-text-secondary mb-6 font-semibold">Help manuals, specifications, and connections.</p>
             
             <div className="max-w-4xl space-y-6">
-              <div className="p-6 bg-bg-secondary border border-black/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-text-primary">Frequently Asked Questions</h3>
-                <div className="space-y-4 divide-y divide-black/5">
+              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-white/[0.04] pb-2">Common Troubleshoot</h3>
+                <div className="space-y-4 divide-y divide-white/[0.04]">
                   {[
-                    { q: 'Is it completely undetectable during screen sharing?', a: 'Yes! Using our system level mainWindow.setContentProtection(true) setting, screen share softares (Zoom, OBS, Teams) will only see a black window instead of GhostHire, maintaining your full stealth mode.' },
+                    { q: 'Is it completely undetectable during screen sharing?', a: 'Yes! Using our system level mainWindow.setContentProtection(true) setting, screen share softwares (Zoom, OBS, Teams) will only see a black window instead of GhostHire, maintaining your full stealth mode.' },
                     { q: 'How does voice recognition work?', a: 'GhostHire utilizes the web speech API to transcribe the interviewer\'s audio in real-time. Make sure to keep your microphone unmuted or speak in a quiet room for high accuracy.' }
                   ].map((faq, i) => (
                     <div key={i} className={`pt-4 ${i === 0 ? 'pt-0' : ''}`}>
-                      <h4 className="text-sm font-bold text-text-primary">{faq.q}</h4>
-                      <p className="text-xs text-text-secondary mt-1 leading-relaxed">{faq.a}</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">{faq.q}</h4>
+                      <p className="text-xs text-text-secondary mt-1.5 leading-relaxed font-semibold">{faq.a}</p>
                     </div>
                   ))}
                 </div>
@@ -1501,31 +1541,31 @@ Respond strictly in ${selectedLang}.`;
         )}
       </main>
 
-      {/* ===== Paywall Modal for Non-Admin Users ===== */}
+      {/* ===== Paywall Premium Glass Modal ===== */}
       {showPaywall && !isAdmin && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)'}}>
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl text-center relative" style={{animation: 'float 3s ease-in-out infinite'}}>
-            {/* Decorative gradient circle */}
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, #E11D48, #F97316)'}}>
-              <Zap size={36} className="text-white" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md">
+          <div className="bg-[#0C0E1F] border border-white/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center relative max-w-md w-full mx-4 rounded-3xl p-8 animate-float">
+            {/* Pulsing neon icon */}
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-tr from-primary to-accent shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+              <Zap size={28} className="text-white" />
             </div>
             
-            <h2 className="text-2xl font-extrabold text-text-primary mb-2">Daily Limit Reached</h2>
-            <p className="text-text-secondary text-sm mb-6 leading-relaxed">
-              You've used your <strong>10 minutes</strong> of free access for today. Upgrade to <strong>GhostHire Pro</strong> for unlimited interview sessions!
+            <h2 className="text-xl font-black text-text-primary mb-2">Free Allocation Complete</h2>
+            <p className="text-xs text-text-secondary leading-relaxed mb-6 font-semibold px-4">
+              You have completed your **10 minutes** of free speech transcription for today. Upgrade to **Pro Candidate** for uncapped runtime, priority models, and system contextualization.
             </p>
 
-            {/* Plan Card */}
-            <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-5 mb-6 text-left">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">Pro Plan</span>
-                <span className="text-2xl font-extrabold text-text-primary">$19<span className="text-sm font-normal text-text-secondary">/mo</span></span>
+            {/* Premium specs list */}
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 mb-6 text-left shadow-inner">
+              <div className="flex items-center justify-between mb-3 border-b border-white/[0.03] pb-2.5">
+                <span className="text-xs font-black uppercase tracking-wider text-accent">Pro Plan Feature Pack</span>
+                <span className="text-xl font-black text-text-primary">₹1,499<span className="text-xs font-normal text-text-tertiary">/mo</span></span>
               </div>
-              <ul className="space-y-2 text-sm text-text-secondary">
-                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Unlimited interview sessions</li>
-                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Priority AI responses</li>
-                <li className="flex items-center gap-2"><span className="text-primary">✓</span> Session history & analytics</li>
-                <li className="flex items-center gap-2"><span className="text-primary">✓</span> All languages supported</li>
+              <ul className="space-y-2 text-xs text-text-secondary font-semibold">
+                <li className="flex items-center gap-2"><span className="text-accent">✓</span> Infinite session lengths and streams</li>
+                <li className="flex items-center gap-2"><span className="text-accent">✓</span> Low-latency access to GPT-4o & Claude</li>
+                <li className="flex items-center gap-2"><span className="text-accent">✓</span> Drag-and-drop resume context syncer</li>
+                <li className="flex items-center gap-2"><span className="text-accent">✓</span> 50+ local speech language processing</li>
               </ul>
             </div>
 
@@ -1535,21 +1575,20 @@ Respond strictly in ${selectedLang}.`;
                 setShowPaywall(false);
                 setUsageLimitReached(false);
               }}
-              className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:scale-105 active:scale-95"
-              style={{background: 'linear-gradient(135deg, #E11D48, #F97316)'}}
+              className="w-full py-3.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-primary to-accent hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              Upgrade to Pro — $19/mo
+              UPGRADE PRO — ₹1,499/mo
             </button>
             
             <button
               onClick={() => setShowPaywall(false)}
-              className="mt-3 text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+              className="mt-4 text-xs font-bold text-text-tertiary hover:text-text-secondary transition-colors"
             >
-              Maybe later
+              Stay on limited tier
             </button>
 
-            <p className="mt-4 text-xs text-text-muted">
-              ⏳ Free access resets every 24 hours
+            <p className="mt-4 text-[0.62rem] text-text-muted font-semibold tracking-wide">
+              ⏳ Daily trial limits renew in 24 hours
             </p>
           </div>
         </div>

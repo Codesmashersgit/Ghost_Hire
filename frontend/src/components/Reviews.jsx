@@ -12,32 +12,53 @@ const reviews = [
 
 export default function Reviews() {
   return (
-    <section className="py-24" id="reviews">
+    <section className="py-24 relative" id="reviews">
       <div className="max-w-[1200px] mx-auto px-6">
-        <motion.div className="text-center mb-14" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[2px] text-accent px-4 py-1.5 bg-accent/8 border border-accent/20 rounded-full mb-4">⭐ Reviews</span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-            Loved by <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">50,000+ Users</span>
+        <motion.div 
+          className="text-center mb-16" 
+          initial={{ opacity: 0, y: 20 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          viewport={{ once: true }}
+        >
+          <span className="inline-flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[2.5px] text-accent px-4 py-1.5 bg-accent/8 border border-accent/20 rounded-full mb-4">
+            ⭐ Testimonials
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-4">
+            Loved by <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">50,000+ Candidates</span>
           </h2>
-          <p className="text-base text-text-secondary max-w-[600px] mx-auto">Real stories from real candidates who landed their dream jobs.</p>
+          <p className="text-sm sm:text-base text-text-secondary max-w-[600px] mx-auto leading-relaxed">
+            Real stories from verified engineers and designers who secured roles at top tech companies.
+          </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {reviews.map((r, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="group p-6 bg-bg-tertiary/60 backdrop-blur-xl border border-black/10 rounded-2xl hover:border-primary/40 hover:shadow-[0_0_40px_rgba(108,92,231,0.15)] hover:-translate-y-0.5 transition-all duration-300">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(r.rating)].map((_, j) => <Star key={j} size={14} className="fill-warning text-warning" />)}
+            <motion.div 
+              key={i} 
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              viewport={{ once: true }} 
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="p-6 bg-bg-tertiary/30 border border-white/[0.05] rounded-2xl hover:border-primary-light/30 hover:bg-bg-tertiary/60 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(r.rating)].map((_, j) => (
+                    <Star key={j} size={13} className="fill-warning text-warning" />
+                  ))}
+                </div>
+                
+                <Quote size={24} className="text-primary-light/20 mb-3" />
+                <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-6 font-medium">"{r.text}"</p>
               </div>
-              <Quote size={20} className="text-primary/30 mb-3" />
-              <p className="text-sm text-text-secondary leading-relaxed mb-6">{r.text}</p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-text-primary text-sm font-bold">
+
+              <div className="flex items-center gap-3 border-t border-white/[0.04] pt-4 mt-4">
+                <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-xs font-black shadow-inner shadow-white/20">
                   {r.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">{r.name}</p>
-                  <p className="text-xs text-text-tertiary">{r.role}</p>
+                  <p className="text-xs sm:text-sm font-bold text-text-primary">{r.name}</p>
+                  <p className="text-[0.68rem] text-text-tertiary font-medium">{r.role}</p>
                 </div>
               </div>
             </motion.div>

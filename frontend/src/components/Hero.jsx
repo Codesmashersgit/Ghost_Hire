@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Play, Users, Zap, Shield, Star } from 'lucide-react'
+import { ArrowRight, Play, Users, Zap, Shield, Star, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 export default function Hero() {
@@ -12,140 +12,179 @@ export default function Hero() {
   }, [])
 
   const stats = [
-    { icon: <Users size={18} />, value: '50,000+', label: 'Active Users' },
-    { icon: <Zap size={18} />, value: '2M+', label: 'Interviews Aced' },
-    { icon: <Star size={18} />, value: '4.9/5', label: 'User Rating' },
+    { icon: <Users size={16} />, value: '50,000+', label: 'Active Candidates' },
+    { icon: <Zap size={16} />, value: '2M+', label: 'Sessions Guided' },
+    { icon: <Star size={16} />, value: '4.95/5', label: 'Candidate Rating' },
   ]
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-20" id="hero">
-      {/* BG Effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute w-[600px] h-[600px] bg-primary/12 rounded-full blur-[100px] -top-48 -right-24 animate-float" />
-        <div className="absolute w-[400px] h-[400px] bg-accent/8 rounded-full blur-[100px] -bottom-24 -left-24 animate-float" style={{ animationDirection: 'reverse', animationDuration: '10s' }} />
-        <div className="absolute w-[300px] h-[300px] bg-primary/6 rounded-full blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-float" style={{ animationDuration: '12s' }} />
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 70%)',
-        }} />
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-24 pb-12" id="hero">
+      {/* Dynamic Cyber Grid & Animated Light Blobs */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute inset-0 cyber-grid opacity-75" />
+        <div className="absolute w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -top-32 -right-16 animate-aura-1" />
+        <div className="absolute w-[450px] h-[450px] bg-accent/8 rounded-full blur-[100px] -bottom-32 -left-16 animate-aura-2" />
+        <div className="absolute w-[350px] h-[350px] bg-primary-light/5 rounded-full blur-[100px] top-1/3 left-1/3 animate-float" />
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center pt-12 pb-8 relative z-10">
-        {/* Left Content */}
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          {/* Badge */}
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/25 rounded-full text-[0.82rem] font-semibold text-primary-light mb-6">
-            <span className="w-2 h-2 bg-success rounded-full shadow-[0_0_8px_#00C853] animate-pulse-glow" />
-            <span>AI-Powered Interview Copilot</span>
-            <ArrowRight size={14} />
+      <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10 w-full">
+        {/* Left Content (Grid Column 7) */}
+        <motion.div 
+          className="lg:col-span-7"
+          initial={{ opacity: 0, y: 30 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.8 }}
+        >
+          {/* Glowing Badge */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-xs font-bold text-primary-light mb-6 shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+          >
+            <span className="w-2.5 h-2.5 bg-success rounded-full animate-pulse shadow-[0_0_10px_#10B981]" />
+            <span>AI-Powered Interview Copilot v2.0</span>
+            <ArrowRight size={12} className="text-primary-light" />
           </motion.div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-[3.8rem] font-black leading-[1.1] tracking-tight mb-6">
-            Ace Every Interview<br />with <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Real-Time AI</span>
+          <h1 className="text-4xl sm:text-5xl lg:text-[4rem] font-black leading-[1.05] tracking-tight mb-6">
+            Ace Every Interview<br />with <span className="bg-gradient-to-r from-primary-light via-accent to-primary bg-clip-text text-transparent animate-pulse-glow">Real-Time AI</span>
           </h1>
 
-          <p className="text-lg text-text-secondary leading-relaxed max-w-[520px] mb-8">
-            GhostHire listens to your interview questions and instantly generates perfect responses. Get coding support, behavioral answers, and personalized context — all in real-time.
+          <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-[540px] mb-8">
+            GhostHire securely monitors your interview streams, providing instant context-aware solutions. Get clean code suggestions, optimal system architecture patterns, and structured behavioral replies, all completely undetectable.
           </p>
 
-          <div className="flex gap-3 flex-wrap mb-6">
+          <div className="flex gap-4 flex-wrap mb-8">
             {isLoggedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="px-8 py-4 text-base font-semibold text-text-primary bg-gradient-to-r from-primary to-accent rounded-2xl shadow-[0_4px_15px_rgba(108,92,231,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(108,92,231,0.4)] transition-all duration-300 flex items-center gap-2" id="hero-cta-primary">
-                Go to Dashboard <ArrowRight size={18} />
+              <button onClick={() => navigate('/dashboard')} className="px-8 py-4 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
+                Go to Dashboard <ArrowRight size={16} />
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-base font-semibold text-text-primary bg-gradient-to-r from-primary to-accent rounded-2xl shadow-[0_4px_15px_rgba(108,92,231,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(108,92,231,0.4)] transition-all duration-300 flex items-center gap-2" id="hero-cta-primary">
-                  Start Free Trial <ArrowRight size={18} />
+                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
+                  Start Free Trial <ArrowRight size={16} />
                 </button>
-                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-base font-semibold text-text-primary bg-black/5 border border-black/10 rounded-2xl hover:bg-black/5 transition-all duration-300 flex items-center gap-2" id="hero-cta-secondary">
-                  <Play size={18} /> Start Demo
+                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-xs font-bold text-text-primary bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                  <Play size={16} className="text-accent" /> Start Demo
                 </button>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-4 mb-8 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs text-text-tertiary"><Shield size={16} /> No Credit Card Required</div>
-            <div className="w-px h-4 bg-black/5" />
-            <div className="flex items-center gap-1.5 text-xs text-text-tertiary"><Zap size={16} /> Works with Zoom, Teams, Meet</div>
+          <div className="flex items-center gap-5 mb-10 flex-wrap text-[0.72rem] text-text-tertiary">
+            <div className="flex items-center gap-1.5"><Shield size={14} className="text-success" /> Completely Stealth Operations</div>
+            <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+            <div className="flex items-center gap-1.5"><Sparkles size={14} className="text-accent" /> Compatible with Zoom, Teams, Meet</div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex gap-8 flex-wrap">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.4 }} 
+            className="flex gap-8 flex-wrap border-t border-border/40 pt-8"
+          >
             {stats.map((stat, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-black/5 border border-black/10 rounded-lg flex items-center justify-center text-accent">{stat.icon}</div>
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/[0.03] border border-white/[0.06] rounded-xl flex items-center justify-center text-accent shadow-sm">{stat.icon}</div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold">{stat.value}</span>
-                  <span className="text-[0.72rem] text-text-tertiary">{stat.label}</span>
+                  <span className="text-base font-black text-text-primary leading-tight">{stat.value}</span>
+                  <span className="text-[0.7rem] font-semibold text-text-tertiary">{stat.label}</span>
                 </div>
               </div>
             ))}
           </motion.div>
         </motion.div>
 
-        {/* Right Mockup */}
-        <motion.div className="relative" initial={{ opacity: 0, y: 60, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 1, delay: 0.3 }}>
-          <div className="bg-bg-secondary border border-black/10 rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_40px_rgba(108,92,231,0.2)]">
+        {/* Right Preview Panel (Grid Column 5) */}
+        <motion.div 
+          className="lg:col-span-5 relative"
+          initial={{ opacity: 0, y: 50, scale: 0.96 }} 
+          animate={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 1, delay: 0.2 }}
+        >
+          {/* Glass Windows container */}
+          <div className="glass-panel rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.15)] border-white/[0.08]">
             {/* Window Header */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border-b border-black/10">
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06]">
               <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-danger/70 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-warning/70" />
+                <span className="w-2.5 h-2.5 rounded-full bg-success/70" />
               </div>
-              <span className="text-xs text-text-tertiary font-medium">GhostHire — Live Session</span>
+              <span className="text-[0.7rem] text-text-tertiary font-bold tracking-wider uppercase ml-1">GHOSTHIRE — LIVE STAGE_FEED</span>
             </div>
-            {/* Body */}
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] min-h-[280px]">
-              <div className="p-5 flex flex-col gap-3">
-                {/* Interviewer */}
-                <div className="p-3 bg-black/5 border border-black/10 rounded-xl text-[0.82rem] leading-relaxed">
-                  <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-text-tertiary block mb-1">Interviewer</span>
-                  <p className="text-text-secondary">"Can you explain the difference between REST and GraphQL APIs?"</p>
+
+            {/* Visualizer Area */}
+            <div className="p-5 flex flex-col gap-4">
+              {/* Interviewer Speech bubble */}
+              <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-text-tertiary">Interviewer Question</span>
+                  <span className="text-[0.62rem] px-2 py-0.5 bg-danger/10 border border-danger/20 rounded-full text-danger font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-danger rounded-full animate-ping" /> Live Feed
+                  </span>
                 </div>
-                {/* AI Response */}
-                <div className="p-3 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-xl text-[0.82rem] leading-relaxed">
-                  <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-primary-light flex items-center gap-1 mb-1"><Zap size={12} /> GhostHire Suggestion</span>
-                  <p className="text-text-primary">"REST uses multiple endpoints with fixed data structures, while GraphQL uses a single endpoint where clients specify exactly what data they need..."</p>
-                  <div className="flex gap-1 mt-2">
-                    {[0, 1, 2].map(j => <span key={j} className="w-1.5 h-1.5 bg-primary-light rounded-full" style={{ animation: `typing-dot 1.4s ${j * 0.2}s ease-in-out infinite` }} />)}
-                  </div>
-                </div>
+                <p className="text-text-primary text-xs leading-relaxed font-semibold">
+                  "Can you explain why we might choose GraphQL over a traditional REST API, and how you design schema updates?"
+                </p>
               </div>
-              {/* Sidebar */}
-              <div className="hidden sm:flex flex-col justify-between p-3 border-l border-black/10 bg-black/15">
-                <div>
-                  <span className="text-[0.72rem] font-semibold text-text-tertiary block mb-2">📄 Resume Context</span>
-                  {['3 yrs Backend Dev', 'Node.js, Python', 'AWS Certified'].map((item, i) => (
-                    <div key={i} className="text-[0.72rem] text-text-secondary px-2 py-1 bg-black/5 rounded mb-1">{item}</div>
-                  ))}
+
+              {/* Copilot Response recommendation */}
+              <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.05)]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-primary-light flex items-center gap-1">
+                    <Sparkles size={11} className="text-accent animate-spin" style={{ animationDuration: '4s' }} /> GhostHire Best Suggestion
+                  </span>
+                  <span className="text-[0.62rem] text-text-tertiary font-mono">Confidence: 99.4%</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[0.72rem] text-text-tertiary font-mono">
-                  <span className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(255,68,68,0.5)] animate-pulse" /> Live • 00:12:34
+                <p className="text-text-primary text-xs leading-relaxed font-medium">
+                  "I prefer GraphQL when clients need fine-grained control over payload size, reducing over-fetching. For schema migrations, we utilize additive-only updates and deprecate fields, avoiding breaking changes."
+                </p>
+                
+                {/* Simulated Waveform Visualizer */}
+                <div className="flex items-center gap-1 mt-4">
+                  {[2, 4, 7, 5, 8, 12, 16, 11, 7, 5, 8, 14, 18, 9, 4, 2].map((h, j) => (
+                    <span 
+                      key={j} 
+                      className="w-1 bg-gradient-to-t from-primary to-accent rounded-full transition-all duration-300"
+                      style={{ 
+                        height: `${h}px`, 
+                        animation: `pulse-glow 1.6s ${j * 0.08}s ease-in-out infinite` 
+                      }} 
+                    />
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Floating badges */}
-          <div className="absolute top-6 -right-4 hidden lg:flex items-center gap-2 px-4 py-2.5 bg-bg-secondary border border-black/10 rounded-xl text-xs font-semibold text-success shadow-lg animate-float">
-            <Shield size={18} /> Undetectable
+          <div className="absolute -top-5 -right-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-success shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float">
+            <Shield size={14} className="text-success" /> 100% Undetectable
           </div>
-          <div className="absolute bottom-10 -left-4 hidden lg:flex items-center gap-2 px-4 py-2.5 bg-bg-secondary border border-black/10 rounded-xl text-xs font-semibold text-accent shadow-lg animate-float" style={{ animationDelay: '1s' }}>
-            <Zap size={18} /> Real-time
+          <div className="absolute -bottom-5 -left-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-accent shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float" style={{ animationDelay: '1.2s' }}>
+            <Zap size={14} className="text-accent" /> Real-time Streaming
           </div>
         </motion.div>
       </div>
 
-      {/* Logos */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-center pt-12 pb-6 border-t border-black/10 mt-8">
-        <p className="text-xs text-text-muted uppercase tracking-[2px] font-medium mb-6">Trusted by candidates interviewing at</p>
-        <div className="flex justify-center items-center gap-10 flex-wrap">
+      {/* Trusted Logos Bar */}
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        transition={{ delay: 0.6 }} 
+        className="text-center pt-16 pb-4 border-t border-border/30 mt-16 w-full max-w-[1200px] mx-auto px-6 z-10"
+      >
+        <p className="text-[0.65rem] text-text-muted uppercase tracking-[3px] font-bold mb-8">Trusted by candidates interviewing at top tech firms</p>
+        <div className="flex justify-center items-center gap-8 sm:gap-12 flex-wrap">
           {['Google', 'Amazon', 'Meta', 'Microsoft', 'Apple', 'Netflix'].map((name) => (
-            <span key={name} className="text-base font-bold text-text-muted/50 tracking-wide hover:text-text-muted/80 transition-opacity">{name}</span>
+            <span 
+              key={name} 
+              className="text-sm font-black text-text-muted/40 tracking-wider hover:text-primary-light hover:opacity-100 transition-all duration-300"
+            >
+              {name}
+            </span>
           ))}
         </div>
       </motion.div>

@@ -148,150 +148,225 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-bg-primary flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm font-bold text-text-primary">Securing Admin Credentials...</p>
+      <div className="h-screen w-screen bg-bg-primary relative flex flex-col items-center justify-center gap-6 overflow-hidden">
+        {/* Futuristic Background */}
+        <div className="absolute inset-0 cyber-grid pointer-events-none opacity-40"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-aura-1"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-aura-2"></div>
+        
+        {/* Loading Widget */}
+        <div className="relative flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full border border-white/5 bg-bg-tertiary/40 backdrop-blur-md flex items-center justify-center neon-glow-primary">
+            <Shield size={32} className="text-primary animate-pulse-glow" />
+          </div>
+          {/* Orbiting spinner ring */}
+          <div className="absolute -inset-2 rounded-full border-2 border-t-primary border-r-accent border-b-transparent border-l-transparent animate-spin"></div>
+        </div>
+        
+        <div className="text-center space-y-2 z-10">
+          <h2 className="text-lg font-bold tracking-wider uppercase bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">Initializing Command Center</h2>
+          <p className="text-xs text-text-secondary font-mono animate-pulse">Securing Admin Credentials & decrypting logs...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col">
+    <div className="min-h-screen bg-bg-primary text-text-primary relative overflow-hidden flex flex-col selection:bg-primary/30 selection:text-white">
+      {/* Cyber Grid Background */}
+      <div className="absolute inset-0 cyber-grid pointer-events-none opacity-60 z-0"></div>
+      
+      {/* Glowing Ambient Blobs */}
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[130px] pointer-events-none z-0 animate-aura-1"></div>
+      <div className="absolute bottom-10 left-1/4 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[150px] pointer-events-none z-0 animate-aura-2"></div>
+
       {/* Header */}
-      <header className="border-b border-black/10 bg-bg-secondary px-8 py-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-50 glass-panel border-b border-white/5 px-8 py-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-2 bg-black/5 hover:bg-black/10 border border-black/10 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium text-text-secondary"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 hover:border-white/20 border border-white/5 rounded-xl transition-all duration-300 flex items-center gap-2 text-xs font-semibold text-text-secondary group"
           >
-            <ArrowLeft size={16} /> User Panel
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
+            <span>Exit Dashboard</span>
           </button>
-          <div className="w-px h-6 bg-black/10" />
-          <h1 className="text-xl font-extrabold flex items-center gap-2">
-            <span className="w-7 h-7 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white"><Shield size={14} /></span>
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">GhostHire Admin Control Room</span>
+          <div className="w-px h-6 bg-white/10" />
+          <h1 className="text-lg font-bold tracking-tight flex items-center gap-3">
+            <span className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white neon-glow-primary">
+              <Shield size={16} />
+            </span>
+            <span className="gradient-text font-extrabold tracking-wide uppercase text-sm md:text-base">GhostHire Administrative Control Center</span>
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-bold text-primary flex items-center gap-1">
-            <Sparkles size={12} /> Master Mode
+        <div className="flex items-center gap-3">
+          <div className="relative hidden md:flex items-center px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[11px] font-mono text-text-secondary">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+            System Live: Decrypted
+          </div>
+          <span className="px-3.5 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-semibold text-primary-light flex items-center gap-1.5 shadow-sm">
+            <Sparkles size={12} className="animate-pulse" /> Master Control
           </span>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-8">
+      <main className="flex-1 p-6 md:p-8 z-10 overflow-y-auto max-w-7xl w-full mx-auto space-y-8">
         
         {/* Stats Metrics Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
           
-          <div className="p-6 bg-gradient-to-br from-white to-bg-secondary border border-black/10 rounded-3xl flex items-center gap-4 hover:shadow-lg transition-all">
-            <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center shrink-0">
-              <Users size={22} />
+          {/* Card 1: Total Users */}
+          <div className="glass-panel glass-panel-hover rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Total Registered</span>
+              <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                <Users size={18} />
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Total Users</p>
-              <h3 className="text-2xl font-extrabold text-text-primary mt-1">{stats.totalUsers}</h3>
-            </div>
-          </div>
-
-          <div className="p-6 bg-gradient-to-br from-white to-bg-secondary border border-black/10 rounded-3xl flex items-center gap-4 hover:shadow-lg transition-all">
-            <div className="w-12 h-12 bg-primary/10 border border-primary/20 text-primary rounded-2xl flex items-center justify-center shrink-0">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Active Sessions</p>
-              <h3 className="text-2xl font-extrabold text-text-primary mt-1">{stats.totalSessions}</h3>
+            <div className="mt-4">
+              <h3 className="text-3xl font-extrabold text-text-primary tracking-tight">{stats.totalUsers}</h3>
+              <p className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1">
+                <span className="text-emerald-400 font-semibold flex items-center">↑ 100%</span> active accounts
+              </p>
             </div>
           </div>
 
-          <div className="p-6 bg-gradient-to-br from-white to-bg-secondary border border-black/10 rounded-3xl flex items-center gap-4 hover:shadow-lg transition-all">
-            <div className="w-12 h-12 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-2xl flex items-center justify-center shrink-0">
-              <Clock size={22} />
+          {/* Card 2: Active Sessions */}
+          <div className="glass-panel glass-panel-hover rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Active Sessions</span>
+              <div className="w-10 h-10 bg-primary/10 border border-primary/20 text-primary-light rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                <ShieldAlert size={18} />
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Usage Today</p>
-              <h3 className="text-2xl font-extrabold text-text-primary mt-1">{stats.totalMinutesUsed} <span className="text-xs font-normal text-text-secondary">min</span></h3>
-            </div>
-          </div>
-
-          <div className="p-6 bg-gradient-to-br from-white to-bg-secondary border border-black/10 rounded-3xl flex items-center gap-4 hover:shadow-lg transition-all">
-            <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0">
-              <CreditCard size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Paid Upgrades</p>
-              <h3 className="text-2xl font-extrabold text-text-primary mt-1">{stats.totalInvoices}</h3>
+            <div className="mt-4">
+              <h3 className="text-3xl font-extrabold text-text-primary tracking-tight">{stats.totalSessions}</h3>
+              <p className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1">
+                <span className="text-emerald-400 font-semibold flex items-center">↑ Dynamic</span> interview helper
+              </p>
             </div>
           </div>
 
-          <div className="p-6 bg-gradient-to-br from-white to-bg-secondary border border-black/10 rounded-3xl flex items-center gap-4 hover:shadow-lg transition-all">
-            <div className="w-12 h-12 bg-pink-500/10 border border-pink-500/20 text-pink-500 rounded-2xl flex items-center justify-center shrink-0">
-              <BarChart3 size={22} />
+          {/* Card 3: Usage Today */}
+          <div className="glass-panel glass-panel-hover rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Usage Today</span>
+              <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                <Clock size={18} />
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Total Revenue</p>
-              <h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{stats.totalRevenue}</h3>
+            <div className="mt-4">
+              <h3 className="text-3xl font-extrabold text-text-primary tracking-tight">
+                {stats.totalMinutesUsed} <span className="text-xs font-semibold text-text-secondary">min</span>
+              </h3>
+              <p className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1">
+                <span className="text-amber-400 font-semibold">Real-time</span> audio processing
+              </p>
+            </div>
+          </div>
+
+          {/* Card 4: Paid Upgrades */}
+          <div className="glass-panel glass-panel-hover rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Premium Upgrades</span>
+              <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                <CreditCard size={18} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <h3 className="text-3xl font-extrabold text-text-primary tracking-tight">{stats.totalInvoices}</h3>
+              <p className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1">
+                <span className="text-emerald-400 font-semibold">Simulated</span> stripe gateway
+              </p>
+            </div>
+          </div>
+
+          {/* Card 5: Total Revenue */}
+          <div className="glass-panel glass-panel-hover rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-full blur-2xl pointer-events-none group-hover:bg-accent/10 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">Total Revenue</span>
+              <div className="w-10 h-10 bg-accent/10 border border-accent/20 text-accent rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                <BarChart3 size={18} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <h3 className="text-3xl font-extrabold text-accent tracking-tight">{stats.totalRevenue}</h3>
+              <p className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1">
+                <span className="text-emerald-400 font-semibold">↑ Stable</span> premium growth
+              </p>
             </div>
           </div>
 
         </section>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-black/10 gap-2 shrink-0">
+        <div className="flex border-b border-white/5 gap-1 shrink-0 p-1 bg-white/[0.02] rounded-xl max-w-fit">
           <button 
             onClick={() => setActiveSubTab('users')}
-            className={`px-6 py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeSubTab === 'users' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
+            className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+              activeSubTab === 'users' 
+                ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
+                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
             }`}
           >
-            <Users size={16} /> User Management
+            <Users size={14} /> <span>User Management</span>
           </button>
           <button 
             onClick={() => setActiveSubTab('sessions')}
-            className={`px-6 py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeSubTab === 'sessions' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
+            className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+              activeSubTab === 'sessions' 
+                ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
+                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
             }`}
           >
-            <FileText size={16} /> Sessions Transcript Log
+            <FileText size={14} /> <span>Transcript Logs</span>
           </button>
           <button 
             onClick={() => setActiveSubTab('invoices')}
-            className={`px-6 py-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              activeSubTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
+            className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+              activeSubTab === 'invoices' 
+                ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
+                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
             }`}
           >
-            <Receipt size={16} /> Revenue & Invoices
+            <Receipt size={14} /> <span>Revenue & Invoices</span>
           </button>
         </div>
 
-        {/* Tab Contents */}
-        <section className="bg-white border border-black/10 rounded-3xl overflow-hidden shadow-sm">
+        {/* Tab Contents Panel */}
+        <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl relative">
+          {/* Subtle grid backing for the panel */}
+          <div className="absolute inset-0 cyber-grid pointer-events-none opacity-20"></div>
           
           {/* USER MANAGEMENT TAB */}
           {activeSubTab === 'users' && (
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 relative z-10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-extrabold text-text-primary">Registered Accounts</h2>
-                  <p className="text-xs text-text-secondary">Perform administrative overrides, grant privileges, or reset daily usage counters.</p>
+                  <h2 className="text-lg font-bold text-text-primary tracking-tight">Registered Developer Accounts</h2>
+                  <p className="text-xs text-text-secondary mt-0.5">Perform administrative overrides, grant privileges, or reset daily usage counters.</p>
                 </div>
                 <div className="relative max-w-sm w-full">
-                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
                   <input 
                     type="text" 
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search by name or email..."
-                    className="w-full bg-black/5 border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-primary/40 transition-colors"
+                    className="w-full bg-bg-tertiary/60 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-text-primary outline-none focus:border-primary-light/50 focus:ring-1 focus:ring-primary-light/50 transition-all duration-300"
                   />
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
+              <div className="overflow-x-auto rounded-xl border border-white/5">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-black/10 text-text-tertiary font-bold text-xs uppercase bg-bg-secondary">
+                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
                       <th className="px-6 py-4">User Details</th>
                       <th className="px-6 py-4">Role</th>
                       <th className="px-6 py-4">Usage Today</th>
@@ -299,66 +374,68 @@ export default function AdminDashboard() {
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/5">
+                  <tbody className="divide-y divide-white/5">
                     {filteredUsers.map(user => {
                       const minsUsed = Math.round((user.dailyUsage?.secondsUsed || 0) / 60);
-                      const isFreeTrial = !user.isAdmin;
                       return (
-                        <tr key={user._id} className="hover:bg-bg-secondary/40 transition-colors">
+                        <tr key={user._id} className="hover:bg-white/[0.02] transition-colors duration-200">
                           <td className="px-6 py-4">
-                            <div className="font-bold text-text-primary">{user.name}</div>
-                            <div className="text-xs text-text-secondary mt-0.5">{user.email}</div>
+                            <div className="font-bold text-text-primary text-sm">{user.name}</div>
+                            <div className="text-[11px] text-text-secondary mt-0.5 font-mono">{user.email}</div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                               user.isAdmin 
-                                ? 'bg-purple-100 text-purple-700 border border-purple-200' 
-                                : 'bg-blue-100 text-blue-700 border border-blue-200'
+                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
+                                : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                             }`}>
-                              {user.isAdmin ? 'Admin' : 'Standard User'}
+                              {user.isAdmin ? 'Admin' : 'Standard'}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             {user.isAdmin ? (
-                              <span className="text-xs font-semibold text-text-muted">Unlimited Access</span>
+                              <span className="text-[11px] font-semibold text-text-muted italic">Unlimited Access</span>
                             ) : (
-                              <div className="flex flex-col gap-1 w-28">
-                                <div className="flex items-center justify-between text-xs font-semibold">
+                              <div className="flex flex-col gap-1.5 w-32">
+                                <div className="flex items-center justify-between text-[11px] font-semibold text-text-secondary">
                                   <span>{minsUsed} / 10 min</span>
                                 </div>
-                                <div className="w-full bg-black/10 rounded-full h-1.5">
-                                  <div className="bg-primary h-1.5 rounded-full" style={{ width: `${Math.min(100, (minsUsed / 10) * 100)}%` }} />
+                                <div className="w-full bg-white/10 rounded-full h-1">
+                                  <div 
+                                    className="bg-gradient-to-r from-primary to-accent h-1 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
+                                    style={{ width: `${Math.min(100, (minsUsed / 10) * 100)}%` }} 
+                                  />
                                 </div>
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-xs font-mono text-text-secondary">
-                            {new Date(user.createdAt).toLocaleDateString()}
+                          <td className="px-6 py-4 font-mono text-text-secondary">
+                            {new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => handleToggleAdmin(user._id, user.name)}
                                 title={user.isAdmin ? "Revoke Admin Status" : "Grant Admin Privilege"}
-                                className="p-2 text-text-secondary bg-black/5 hover:bg-black/10 border border-black/10 rounded-lg hover:text-purple-600 transition-all cursor-pointer"
+                                className="p-2 text-text-secondary bg-white/5 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/20 rounded-lg hover:text-purple-400 transition-all duration-300"
                               >
-                                <Shield size={14} />
+                                <Shield size={13} />
                               </button>
                               {!user.isAdmin && (
                                 <button
                                   onClick={() => handleResetUsage(user._id, user.name)}
                                   title="Reset Daily Timer"
-                                  className="p-2 text-text-secondary bg-black/5 hover:bg-black/10 border border-black/10 rounded-lg hover:text-orange-600 transition-all cursor-pointer"
+                                  className="p-2 text-text-secondary bg-white/5 hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/20 rounded-lg hover:text-amber-400 transition-all duration-300"
                                 >
-                                  <RotateCcw size={14} />
+                                  <RotateCcw size={13} />
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDeleteUser(user._id, user.name)}
                                 title="Delete User Account"
-                                className="p-2 text-text-secondary bg-black/5 hover:bg-black/10 border border-black/10 rounded-lg hover:text-red-600 transition-all cursor-pointer"
+                                className="p-2 text-text-secondary bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 rounded-lg hover:text-red-400 transition-all duration-300"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </td>
@@ -367,7 +444,9 @@ export default function AdminDashboard() {
                     })}
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="px-6 py-8 text-center text-sm text-text-tertiary">No users found matching your search.</td>
+                        <td colSpan="5" className="px-6 py-12 text-center text-xs text-text-tertiary">
+                          No developer accounts found matching that query.
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -378,47 +457,52 @@ export default function AdminDashboard() {
 
           {/* SESSIONS TRANSCRIPT LOG TAB */}
           {activeSubTab === 'sessions' && (
-            <div className="p-6">
-              <div className="mb-6">
-                <h2 className="text-lg font-extrabold text-text-primary">Sessions Transcript Log</h2>
-                <p className="text-xs text-text-secondary">Monitor transcript summaries and logs generated across all users.</p>
+            <div className="p-6 space-y-6 relative z-10">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary tracking-tight">Decrypted Transcript Logs</h2>
+                <p className="text-xs text-text-secondary mt-0.5">Monitor system transcript logs, AI assistant notes, and metadata generated across all user live feeds.</p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
+              <div className="overflow-x-auto rounded-xl border border-white/5">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-black/10 text-text-tertiary font-bold text-xs uppercase bg-bg-secondary">
-                      <th className="px-6 py-4">Title / Language</th>
+                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
+                      <th className="px-6 py-4">Title / Context</th>
                       <th className="px-6 py-4">Owner Account</th>
                       <th className="px-6 py-4">Duration</th>
-                      <th className="px-6 py-4">Session Date</th>
+                      <th className="px-6 py-4">Timestamp</th>
                       <th className="px-6 py-4 text-right">Dialogues</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/5">
+                  <tbody className="divide-y divide-white/5">
                     {sessions.map(sess => (
-                      <tr key={sess._id} className="hover:bg-bg-secondary/40 transition-colors">
+                      <tr key={sess._id} className="hover:bg-white/[0.02] transition-colors duration-200">
                         <td className="px-6 py-4">
-                          <div className="font-bold text-text-primary">{sess.title}</div>
+                          <div className="font-bold text-text-primary text-sm flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping"></span>
+                            {sess.title}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           {sess.userId ? (
                             <>
-                              <div className="font-semibold text-text-primary">{sess.userId.name}</div>
-                              <div className="text-[11px] text-text-secondary mt-0.5">{sess.userId.email}</div>
+                              <div className="font-bold text-text-primary">{sess.userId.name}</div>
+                              <div className="text-[11px] text-text-secondary mt-0.5 font-mono">{sess.userId.email}</div>
                             </>
                           ) : (
-                            <span className="text-text-muted italic">Unknown User</span>
+                            <span className="text-text-muted italic">Anonymous Session</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-xs font-mono font-semibold text-text-secondary">
-                          {sess.duration || 'N/A'}
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 bg-white/5 rounded-md font-mono text-[11px] text-text-secondary border border-white/5">
+                            {sess.duration || 'N/A'}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-text-secondary">
-                          {new Date(sess.createdAt).toLocaleString()}
+                        <td className="px-6 py-4 text-text-secondary font-mono">
+                          {new Date(sess.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span className="px-2.5 py-1 bg-black/5 border border-black/10 rounded-lg text-xs font-semibold text-text-secondary">
+                          <span className="px-2.5 py-0.5 bg-accent/10 border border-accent/20 rounded-full text-[10px] font-bold text-accent">
                             {sess.transcript?.length || 0} messages
                           </span>
                         </td>
@@ -426,7 +510,9 @@ export default function AdminDashboard() {
                     ))}
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="px-6 py-8 text-center text-sm text-text-tertiary">No transcripts recorded yet in the database.</td>
+                        <td colSpan="5" className="px-6 py-12 text-center text-xs text-text-tertiary">
+                          No audio transcript records found in the database.
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -437,55 +523,57 @@ export default function AdminDashboard() {
 
           {/* REVENUE & INVOICES TAB */}
           {activeSubTab === 'invoices' && (
-            <div className="p-6">
-              <div className="mb-6">
-                <h2 className="text-lg font-extrabold text-text-primary">Revenue & Invoices History</h2>
-                <p className="text-xs text-text-secondary">Track upgrade logs and revenue statistics generated via Simulated Payments.</p>
+            <div className="p-6 space-y-6 relative z-10">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary tracking-tight">Revenue & Simulated Payments</h2>
+                <p className="text-xs text-text-secondary mt-0.5">Track real-time upgrade logs, stripe events, and simulated customer conversions.</p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
+              <div className="overflow-x-auto rounded-xl border border-white/5">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-black/10 text-text-tertiary font-bold text-xs uppercase bg-bg-secondary">
-                      <th className="px-6 py-4">Invoice ID</th>
-                      <th className="px-6 py-4">Customer Details</th>
+                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
+                      <th className="px-6 py-4">Invoice Hash</th>
+                      <th className="px-6 py-4">Customer</th>
                       <th className="px-6 py-4">Amount</th>
                       <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Payment Date</th>
+                      <th className="px-6 py-4 text-right">Settled Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/5">
+                  <tbody className="divide-y divide-white/5">
                     {invoices.map(invoice => (
-                      <tr key={invoice._id} className="hover:bg-bg-secondary/40 transition-colors">
-                        <td className="px-6 py-4 text-xs font-mono font-bold text-text-primary">
+                      <tr key={invoice._id} className="hover:bg-white/[0.02] transition-colors duration-200">
+                        <td className="px-6 py-4 font-mono font-bold text-primary-light text-xs">
                           {invoice.invoiceId}
                         </td>
                         <td className="px-6 py-4">
                           {invoice.userId ? (
                             <>
-                              <div className="font-semibold text-text-primary">{invoice.userId.name}</div>
-                              <div className="text-[11px] text-text-secondary mt-0.5">{invoice.userId.email}</div>
+                              <div className="font-bold text-text-primary">{invoice.userId.name}</div>
+                              <div className="text-[11px] text-text-secondary mt-0.5 font-mono">{invoice.userId.email}</div>
                             </>
                           ) : (
                             <span className="text-text-muted italic">Unknown Customer</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 font-bold text-emerald-600">
+                        <td className="px-6 py-4 font-bold text-emerald-400 text-sm">
                           {invoice.amount}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold">
+                          <span className="px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold">
                             {invoice.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-text-secondary text-right">
-                          {new Date(invoice.createdAt).toLocaleString()}
+                        <td className="px-6 py-4 text-text-secondary font-mono text-right">
+                          {new Date(invoice.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                       </tr>
                     ))}
                     {invoices.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="px-6 py-8 text-center text-sm text-text-tertiary">No premium billing logs recorded yet.</td>
+                        <td colSpan="5" className="px-6 py-12 text-center text-xs text-text-tertiary">
+                          No paid upgrades or invoices logged in the database.
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -494,7 +582,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-        </section>
+        </div>
 
       </main>
     </div>
