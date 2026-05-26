@@ -53,6 +53,14 @@ export default function Dashboard() {
     return localStorage.getItem('ghosthire_github_model') || 'gpt-4o-mini';
   })
   
+  const [earbudsMode, setEarbudsMode] = useState(() => {
+    return localStorage.getItem('ghosthire_earbuds') === 'true';
+  })
+
+  useEffect(() => {
+    localStorage.setItem('ghosthire_earbuds', earbudsMode);
+  }, [earbudsMode])
+  
   const recognitionRef = useRef(null)
   const messagesEndRef = useRef(null)
   const chatHistoryRef = useRef([])
@@ -60,6 +68,7 @@ export default function Dashboard() {
   const secondsRef = useRef(0)
 
   // Custom audio transcriber refs
+  const socketRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const recordingIntervalRef = useRef(null)
@@ -252,22 +261,13 @@ export default function Dashboard() {
   }, [speechNotification]);
 
   const transcribeAudio = async (blob) => {
-    const activeKey = import.meta.env.VITE_GROQ_API_KEY;
+    const activeKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
     if (!activeKey) {
-      console.warn("Groq API Key (VITE_GROQ_API_KEY) is missing in your .env file.");
+      console.warn("Deepgram API Key (VITE_DEEPGRAM_API_KEY) is missing in your .env file.");
       return "";
     }
     
     return new Promise((resolve) => {
-      const url = 'https://api.groq.com/openai/v1/audio/transcriptions';
-      
-      const extension = blob.type.includes('ogg') ? 'ogg' : 'webm';
-      const file = new File([blob], `speech.${extension}`, { type: blob.type });
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('model', 'whisper-large-v3');
-      
       const langMap = {
         'English': 'en',
         'Hindi': 'hi',
@@ -276,14 +276,16 @@ export default function Dashboard() {
         'Japanese': 'ja'
       };
       const langCode = langMap[selectedLang] || 'en';
-      formData.append('language', langCode);
-
+      
+      const url = `https://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=true`;
+      
       fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${activeKey}`
+          'Authorization': `Token ${activeKey}`,
+          'Content-Type': blob.type || 'audio/webm'
         },
-        body: formData
+        body: blob
       })
       .then(res => {
         if (!res.ok) {
@@ -292,10 +294,11 @@ export default function Dashboard() {
         return res.json();
       })
       .then(data => {
-        resolve(data.text || "");
+        const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
+        resolve(transcript);
       })
       .catch(err => {
-        console.error("Groq Whisper Transcription failed:", err);
+        console.error("Deepgram Transcription failed:", err);
         resolve("");
       });
     });
@@ -386,7 +389,9 @@ export default function Dashboard() {
     chunksRef.current = [];
     isProcessingRef.current = false;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Use standard microphone instead of screen share
+      let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
       if (sessionId !== recordingSessionIdRef.current) {
         stream.getTracks().forEach(track => track.stop());
         return;
@@ -395,104 +400,75 @@ export default function Dashboard() {
       
       startVisualizer(stream);
 
-      const options = { mimeType: 'audio/webm' };
-      if (!MediaRecorder.isTypeSupported('audio/webm')) {
-        options.mimeType = 'audio/ogg';
-      }
+      const langMap = { 'English': 'en', 'Hindi': 'hi', 'German': 'de', 'French': 'fr', 'Japanese': 'ja' };
+      const langCode = langMap[selectedLang] || 'en';
+
+      // Connect securely via backend proxy to hide Deepgram API Key
+      // Determine WebSocket protocol based on page protocol (ws:// or wss://)
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socketUrl = `${protocol}//${window.location.host}/api/speech/stream?language=${langCode}`;
       
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
+      const socket = new WebSocket(socketUrl);
+      socketRef.current = socket;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
+      socket.onopen = () => {
+        const options = { mimeType: 'audio/webm' };
+        if (!MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/ogg';
+        
+        const mediaRecorder = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = mediaRecorder;
 
-      mediaRecorder.onstop = async () => {
-        // Guard: ignore if session changed or already processing
-        if (sessionId !== recordingSessionIdRef.current) return;
-        if (isProcessingRef.current) return;
-        isProcessingRef.current = true;
-
-        const currentChunks = [...chunksRef.current];
-        chunksRef.current = [];
-
-        // Immediately restart recording for the next chunk (don't wait for transcription)
-        if (isListeningRef.current && transcriptionEngineRef.current === 'AI_ENGINE' && sessionId === recordingSessionIdRef.current) {
-          try {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-              mediaRecorderRef.current.start();
-            }
-          } catch(e) {
-            console.error("Failed to restart MediaRecorder:", e);
-          }
-        }
-
-        if (currentChunks.length > 0) {
-          const audioBlob = new Blob(currentChunks, { type: mediaRecorder.mimeType });
-          
-          setIsTranscribing(true);
-          setLiveTranscript('🎙️ Transcribing...');
-          const text = await transcribeAudio(audioBlob);
-          setIsTranscribing(false);
-          
-          if (sessionId !== recordingSessionIdRef.current) {
-            isProcessingRef.current = false;
-            return;
-          }
-          
-          if (text && text.trim()) {
-            const cleanedText = text.trim();
-            
-            if (autoSend) {
-              if (sendTimeoutRef.current) {
-                clearTimeout(sendTimeoutRef.current);
+        mediaRecorder.ondataavailable = async (event) => {
+          if (event.data && event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+            try {
+              const arrayBuffer = await event.data.arrayBuffer();
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(arrayBuffer);
               }
-              
-              accumulatedSpeechRef.current = accumulatedSpeechRef.current
-                ? `${accumulatedSpeechRef.current} ${cleanedText}`
-                : cleanedText;
-                
-              setLiveTranscript(`🎙️ "${accumulatedSpeechRef.current}"`);
-              
-              sendTimeoutRef.current = setTimeout(() => {
-                if (accumulatedSpeechRef.current.trim()) {
-                  handleFinalTranscript(accumulatedSpeechRef.current.trim());
-                  accumulatedSpeechRef.current = '';
-                  setLiveTranscript('');
-                }
-              }, 2000);
-            } else {
-              setLiveTranscript(cleanedText);
-              setManualInput(prev => {
-                const joined = prev ? `${prev} ${cleanedText}` : cleanedText;
-                setSpeechNotification(joined);
-                return joined;
-              });
-            }
-          } else {
-            // If silence and autoSend is active, don't clear the accumulated transcript yet (wait for timeout)
-            if (!autoSend) {
-              setLiveTranscript('');
+            } catch (e) {
+              console.error('Error sending audio chunk', e);
             }
           }
-        }
+        };
 
-        isProcessingRef.current = false;
+        mediaRecorder.start(250); // Stream chunks every 250ms
+        setLiveTranscript('🎙️ Listening (Live Streaming)...');
       };
 
-      mediaRecorder.start();
-      setLiveTranscript('🎙️ Listening...');
-      
-      recordingIntervalRef.current = setInterval(() => {
-        if (sessionId !== recordingSessionIdRef.current) {
-          return;
+      socket.onmessage = (message) => {
+        const received = JSON.parse(message.data);
+        const transcript = received.channel?.alternatives?.[0]?.transcript;
+        if (transcript && received.is_final) {
+          const cleanedText = transcript.trim();
+          if (autoSend) {
+            accumulatedSpeechRef.current = accumulatedSpeechRef.current
+              ? `${accumulatedSpeechRef.current} ${cleanedText}`
+              : cleanedText;
+            setLiveTranscript(`🎙️ "${accumulatedSpeechRef.current}"`);
+            
+            if (sendTimeoutRef.current) clearTimeout(sendTimeoutRef.current);
+            sendTimeoutRef.current = setTimeout(() => {
+              if (accumulatedSpeechRef.current.trim()) {
+                handleFinalTranscript(accumulatedSpeechRef.current.trim());
+                accumulatedSpeechRef.current = '';
+                setLiveTranscript('');
+              }
+            }, 2000);
+          } else {
+            setLiveTranscript(cleanedText);
+            setManualInput(prev => {
+              const joined = prev ? `${prev} ${cleanedText}` : cleanedText;
+              setSpeechNotification(joined);
+              return joined;
+            });
+          }
+        } else if (transcript) {
+          setLiveTranscript(`🎙️ ${transcript}`);
         }
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && !isProcessingRef.current) {
-          mediaRecorderRef.current.stop();
-        }
-      }, 2500); // 2.5 second chunks for faster real-time feedback
+      };
+
+      socket.onclose = () => console.log("Deepgram WebSocket closed.");
+      socket.onerror = (error) => console.error("Deepgram WebSocket error:", error);
 
     } catch (err) {
       console.error("Failed to access microphone:", err);
@@ -504,6 +480,10 @@ export default function Dashboard() {
   };
 
   const stopRecording = () => {
+    if (socketRef.current) {
+      if (socketRef.current.readyState === WebSocket.OPEN) socketRef.current.close();
+      socketRef.current = null;
+    }
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
@@ -650,7 +630,7 @@ export default function Dashboard() {
         recognitionRef.current = null;
       }
     };
-  }, [isListening, transcriptionEngine, selectedLang]);
+  }, [isListening, transcriptionEngine, selectedLang, earbudsMode]);
 
   useEffect(() => {
     return () => {
@@ -667,79 +647,30 @@ export default function Dashboard() {
 
 
   const generateSuggestions = async (questionText) => {
-    try {
-      const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
-      if (!activeKey) return;
-      
-      setLoadingSuggestions(true);
-      
-      const systemInstruction = `You are a helpful coding interview assistant.
-Given the interviewer's question/topic, generate exactly 3 short, highly relevant follow-up questions, related technical terms, or deep-dives that the interviewer is likely to ask next or the candidate should mention.
-Format your response strictly as a JSON array of 3 strings, for example: ["How does time complexity change?", "Explain the difference between X and Y", "What are the edge cases?"].
-Do not include any markdown styling, code block symbols (like \`\`\`json), or conversational text. Return only the raw JSON.`;
-
-      const modelsToTry = [githubModel, ...FALLBACK_MODELS.filter(m => m !== githubModel)];
-      let response = null;
-      let chosenModel = githubModel;
-
-      for (const currentModel of modelsToTry) {
-        chosenModel = currentModel;
-        try {
-          response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${activeKey}`
-            },
-            body: JSON.stringify({
-              model: currentModel,
-              messages: [
-                { role: "system", content: systemInstruction },
-                { role: "user", content: `Interviewer's question: "${questionText}"` }
-              ]
-            })
-          });
-
-          if (response.status === 429) {
-            console.warn(`Suggestions Model ${currentModel} returned 429 (Rate Limit). Trying next fallback...`);
-            continue;
-          }
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            const errMsg = errData.error?.message || "";
-            if (errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("429") || errMsg.toLowerCase().includes("too many requests")) {
-              console.warn(`Suggestions Model ${currentModel} error indicates rate limit: ${errMsg}. Trying next fallback...`);
-              continue;
-            }
-            throw new Error(errMsg || `HTTP ${response.status}`);
-          }
-
-          break; // Succeeded
-        } catch (e) {
-          console.warn(`Suggestions error with ${currentModel}:`, e);
-          const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
-          if (isLast) throw e;
-        }
-      }
-
-      if (response && response.ok) {
-        const data = await response.json();
-        let rawContent = data.choices[0]?.message?.content || "";
-        rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(rawContent);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSuggestions(parsed);
-          if (chosenModel !== githubModel) {
-            console.log(`Auto-switched model to ${chosenModel} due to suggestions rate limiting.`);
-            setGithubModel(chosenModel);
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to generate suggestions:", e);
-    } finally {
-      setLoadingSuggestions(false);
+    const jwtToken = localStorage.getItem('token');
+    if (!jwtToken) {
+      console.error('Missing auth token for suggestions');
+      return;
+    }
+    const suggRes = await fetch('/api/ai/suggestions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify({
+        question: questionText,
+        model: githubModel
+      })
+    });
+    if (!suggRes.ok) {
+      const err = await suggRes.json().catch(() => ({}));
+      console.error('Suggestions request failed:', err.message || `HTTP ${suggRes.status}`);
+      return;
+    }
+    const suggData = await suggRes.json();
+    if (Array.isArray(suggData.suggestions)) {
+      setSuggestions(suggData.suggestions);
     }
   };
 
@@ -750,151 +681,87 @@ Do not include any markdown styling, code block symbols (like \`\`\`json), or co
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setMessages(prev => [...prev, { type: 'interviewer', text: `"${text}"`, time }]);
-    
+
     const aiMessageId = Date.now();
-    setMessages(prev => [...prev, { 
+    setMessages(prev => [...prev, {
       id: aiMessageId,
-      type: 'ai', 
-      text: '', 
+      type: 'ai',
+      text: '',
       isStreaming: true,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }]);
 
+    const jwtToken = localStorage.getItem('token');
+    if (!jwtToken) {
+      setMessages(prev => prev.map(msg => msg.id === aiMessageId
+        ? { ...msg, text: 'Error: Not authenticated. Please sign in again.', isStreaming: false }
+        : msg
+      ));
+      return;
+    }
+
     try {
-      const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
-      if (!activeKey) {
-        throw new Error("GitHub Token (VITE_GITHUB_TOKEN) is missing in your .env file.");
-      }
-      
-      const systemInstruction = `You are a professional coding interview assistant. Provide a direct, extremely concise, and precise answer.
-Do NOT use any markdown headers (like ###), bullet points (*), emojis, or conversational intros/outros.
-Start answering the question immediately in first person ("I", "my", "we"). Limit your entire response to exactly 2 to 3 sentences maximum.
-Respond strictly in ${selectedLang}.`;
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          question: text,
+          context: extraContext,
+          language: selectedLang,
+          chatHistory: chatHistoryRef.current,
+          model: githubModel
+        })
+      });
 
-      const prompt = extraContext ? `Context: ${extraContext}\n\nQuestion: ${text}` : text;
-      const apiMessages = [
-        { role: "system", content: systemInstruction },
-        ...chatHistoryRef.current,
-        { role: "user", content: prompt }
-      ];
-
-      const modelsToTry = [githubModel, ...FALLBACK_MODELS.filter(m => m !== githubModel)];
-      let response = null;
-      let chosenModel = githubModel;
-
-      for (const currentModel of modelsToTry) {
-        chosenModel = currentModel;
-        try {
-          response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${activeKey}`
-            },
-            body: JSON.stringify({
-              model: currentModel,
-              messages: apiMessages,
-              stream: true
-            })
-          });
-
-          if (response.status === 429) {
-            console.warn(`Model ${currentModel} returned 429 (Rate Limit). Trying next fallback...`);
-            continue;
-          }
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            const errMsg = errData.error?.message || "";
-            if (errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("429") || errMsg.toLowerCase().includes("too many requests")) {
-              console.warn(`Model ${currentModel} error indicates rate limit: ${errMsg}. Trying next fallback...`);
-              continue;
-            }
-            throw new Error(errMsg || `GitHub Models API returned HTTP ${response.status}`);
-          }
-
-          break; // Success
-        } catch (err) {
-          console.warn(`Error with model ${currentModel}:`, err);
-          const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
-          if (isLast) throw err;
-        }
-      }
-
-      if (!response || !response.ok) {
-        throw new Error(`Failed to establish connection with any fallback model.`);
-      }
-
-      if (chosenModel !== githubModel) {
-        setMessages(prev => {
-          const aiPendingIndex = prev.findIndex(msg => msg.id === aiMessageId);
-          if (aiPendingIndex !== -1) {
-            const newMsgs = [...prev];
-            newMsgs.splice(aiPendingIndex, 0, {
-              type: 'system',
-              text: `⚠️ Rate limit on ${githubModel}. Switched to ${chosenModel}.`
-            });
-            return newMsgs;
-          }
-          return [...prev, { type: 'system', text: `⚠️ Rate limit on ${githubModel}. Switched to ${chosenModel}.` }];
-        });
-        setGithubModel(chosenModel);
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `HTTP ${response.status}`);
       }
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      
-      let accumulatedText = "";
-      let buffer = "";
-      
+      const decoder = new TextDecoder('utf-8');
+      let accumulatedText = '';
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
         for (const line of lines) {
           const cleanLine = line.trim();
-          if (cleanLine.startsWith("data: ")) {
+          if (cleanLine.startsWith('data: ')) {
             const dataStr = cleanLine.slice(6).trim();
-            if (dataStr === "[DONE]") break;
+            if (dataStr === '[DONE]') break;
             try {
               const data = JSON.parse(dataStr);
-              const content = data.choices[0]?.delta?.content || "";
+              const content = data.choices?.[0]?.delta?.content || '';
               accumulatedText += content;
-              
-              setMessages(prev => {
-                return prev.map(msg => {
-                  if (msg.id === aiMessageId) {
-                    return { ...msg, text: accumulatedText };
-                  }
-                  return msg;
-                });
-              });
-            } catch(e) {}
+              setMessages(prev => prev.map(msg =>
+                msg.id === aiMessageId ? { ...msg, text: accumulatedText } : msg
+              ));
+            } catch (_) { /* skip malformed JSON chunks */ }
           }
         }
       }
 
-      setMessages(prev => {
-        return prev.map(msg => {
-          if (msg.id === aiMessageId) {
-            return { ...msg, text: accumulatedText, isStreaming: false };
-          }
-          return msg;
-        });
-      });
+      setMessages(prev => prev.map(msg =>
+        msg.id === aiMessageId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
+      ));
 
-      chatHistoryRef.current.push({ role: "user", content: prompt });
-      chatHistoryRef.current.push({ role: "assistant", content: accumulatedText });
-
-    } catch(e) {
-      console.error("GitHub model generation failed:", e);
+      chatHistoryRef.current.push({ role: 'user', content: text });
+      chatHistoryRef.current.push({ role: 'assistant', content: accumulatedText });
+    } catch (e) {
+      console.error('AI chat request failed:', e);
       setMessages(prev => {
         const filtered = prev.filter(msg => msg.id !== aiMessageId);
-        return [...filtered, { type: 'system', text: `Error: GitHub Model request failed. (${e.message || e})` }];
+        return [...filtered, { type: 'system', text: `Error: AI request failed. (${e.message || e})` }];
       });
     }
   };
@@ -907,17 +774,10 @@ Respond strictly in ${selectedLang}.`;
     }
 
     chatHistoryRef.current = [];
-
-    const activeKey = import.meta.env.VITE_GITHUB_TOKEN;
-    if (!activeKey) {
-      alert("GitHub Token not found in .env file. Please add VITE_GITHUB_TOKEN.");
-      return;
-    }
-
     setIsSessionActive(true);
     setMessages([]);
     setIsListening(false);
-  }
+  };
 
   const stopSession = async () => {
     setIsSessionActive(false);
@@ -1497,6 +1357,18 @@ Respond strictly in ${selectedLang}.`;
                       <option value="French" className="bg-bg-tertiary text-text-primary">🇫🇷 French</option>
                       <option value="Japanese" className="bg-bg-tertiary text-text-primary">🇯🇵 Japanese</option>
                     </select>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-text-primary">Earbuds Mode (System Audio)</h4>
+                      <p className="text-[0.72rem] text-text-secondary mt-0.5">Silently capture system audio for earbuds. (Requires Desktop App)</p>
+                    </div>
+                    <button 
+                      onClick={() => setEarbudsMode(!earbudsMode)}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${earbudsMode ? 'bg-primary-light' : 'bg-white/[0.08]'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${earbudsMode ? 'translate-x-4 shadow-sm' : 'translate-x-0'}`} />
+                    </button>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
                     <div>

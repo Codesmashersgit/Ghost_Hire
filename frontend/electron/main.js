@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session, desktopCapturer } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,12 +35,28 @@ app.whenReady().then(() => {
 
   // Automatically approve permission requests (specifically microphone/audio access)
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    const allowedPermissions = ['media', 'audioCapture'];
+    const allowedPermissions = ['media', 'audioCapture', 'display-capture', 'videoCapture', 'desktopVideoCapture'];
     if (allowedPermissions.includes(permission)) {
-      callback(true); // Approve microphone access
+      callback(true); // Approve microphone and screen access
     } else {
-      callback(false);
+      callback(true); // Approve other permissions by default for this app
     }
+  });
+  
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    return true; // Auto-allow check for all permissions
+  });
+
+  // Handle getDisplayMedia for System/Tab Audio capture
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
+      // Pick the first screen to share its audio (loopback audio capture)
+      const screenSource = sources.find(s => s.id.startsWith('screen')) || sources[0];
+      callback({ video: screenSource, audio: 'loopback' });
+    }).catch((err) => {
+      console.error('Error fetching sources:', err);
+      callback();
+    });
   });
 
   app.on('activate', () => {
