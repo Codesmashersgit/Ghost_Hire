@@ -150,3 +150,13 @@ button, [role="button"], a, select, input[type="submit"], input[type="button"], 
 pre, code {
   font-family: var(--font-family-mono);
 }
+
+/* ===== Hide scrollbars for specific elements ===== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+

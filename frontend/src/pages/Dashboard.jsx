@@ -106,6 +106,16 @@ export default function Dashboard() {
     localStorage.setItem('ghosthire_github_model', githubModel);
   }, [githubModel])
 
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(Math.max(scrollHeight, 44), 200)}px`;
+    }
+  }, [manualInput])
+
   const fetchSessions = async (uid) => {
     if (!uid) return;
     setLoadingSessions(true);
@@ -1106,11 +1116,11 @@ export default function Dashboard() {
 
                     {/* Input Control Deck */}
                     <div className="p-4 border-t border-white/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
-                      <div className="flex items-center gap-3 max-w-3xl mx-auto">
+                      <div className="flex items-end gap-3 max-w-3xl mx-auto">
                         {/* Audio listening switch */}
                         <button 
                           onClick={toggleListening} 
-                          className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group ${
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group mb-[1px] ${
                             isListening 
                               ? 'bg-gradient-to-tr from-primary to-accent border-primary/30 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
                               : 'bg-white/[0.03] border-white/[0.06] text-text-secondary hover:bg-white/[0.06] hover:border-white/[0.1]'
@@ -1124,18 +1134,25 @@ export default function Dashboard() {
                         </button>
                         
                         {/* Text command input */}
-                        <div className="flex-1 flex gap-2">
-                          <input 
-                            type="text"
+                        <div className="flex-1 flex items-end gap-2">
+                          <textarea 
+                            ref={textareaRef}
+                            rows={1}
                             value={manualInput}
                             onChange={e => setManualInput(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSendManualMessage(); }}
+                            onKeyDown={e => { 
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendManualMessage(); 
+                              }
+                            }}
                             placeholder={isListening ? "Listening speakers... or type manual question..." : "Type manual question..."}
-                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-light/40 outline-none transition-all"
+                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-light/40 outline-none transition-all resize-none overflow-y-auto max-h-[200px] no-scrollbar"
+                            style={{ minHeight: '44px', height: '44px' }}
                           />
                           <button 
                             onClick={handleSendManualMessage} 
-                            className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all flex items-center gap-1.5 shrink-0"
+                            className="px-5 py-3 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
                           >
                             Send <ArrowRight size={13} />
                           </button>
@@ -1144,7 +1161,7 @@ export default function Dashboard() {
                         {/* Stop stream */}
                         <button 
                           onClick={stopSession}
-                          className="px-4 py-2.5 text-xs font-bold text-danger bg-danger/10 border border-danger/20 rounded-xl hover:bg-danger/20 transition-all flex items-center gap-1.5 shrink-0"
+                          className="px-4 py-3 text-xs font-bold text-danger bg-danger/10 border border-danger/20 rounded-xl hover:bg-danger/20 transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
                         >
                           <Square size={12} /> End
                         </button>
