@@ -1,30 +1,168 @@
 import express from 'express';
-// import { GoogleGenerativeAI } from '@google/generative-ai';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123';
 
-// Example route for generating AI response from the backend
-router.post('/generate', async (req, res) => {
-  const { prompt, context } = req.body;
+const FALLBACK_MODELS = [
+  "gpt-4o-mini",
+  "gpt-4o",
+  "meta-llama-3.1-70b-instruct",
+  "Phi-3-medium-128k-instruct"
+];
 
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+// Auth middleware
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+// Helper: call Azure GitHub AI with fallback models (streaming)
+const callAzureAI = async (messages, model, res, preferredModel) => {
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  if (!GITHUB_TOKEN) {
+    return res.status(500).json({ success: false, message: 'AI service not configured.' });
   }
 
+  const modelsToTry = [model, ...FALLBACK_MODELS.filter(m => m !== model)];
+
+  for (const currentModel of modelsToTry) {
+    try {
+      const response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GITHUB_TOKEN}`
+        },
+        body: JSON.stringify({ model: currentModel, messages, stream: true })
+      });
+
+      if (response.status === 429) {
+        console.warn(`Model ${currentModel} rate limited, trying next...`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || '';
+        if (errMsg.toLowerCase().includes('rate limit') || errMsg.toLowerCase().includes('429')) {
+          continue;
+        }
+        throw new Error(errMsg || `HTTP ${response.status}`);
+      }
+
+      // Stream the response back to the client
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const reader = response.body;
+      const decoder = new TextDecoder();
+
+      for await (const chunk of reader) {
+        const text = decoder.decode(chunk, { stream: true });
+        res.write(text);
+      }
+      res.end();
+      return;
+    } catch (e) {
+      console.warn(`Error with model ${currentModel}:`, e.message);
+      const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
+      if (isLast) throw e;
+    }
+  }
+};
+
+// @route   POST /api/ai/chat
+// @desc    Proxy AI chat completions (streaming) - keeps GitHub token server-side
+router.post('/chat', authMiddleware, async (req, res) => {
+  const { question, context, language, chatHistory, model } = req.body;
+  if (!question) return res.status(400).json({ success: false, message: 'Question is required' });
+
+  const systemInstruction = `You are a professional coding interview assistant. Provide a direct, extremely concise, and precise answer.
+Do NOT use any markdown headers (like ###), bullet points (*), emojis, or conversational intros/outros.
+Start answering the question immediately in first person ("I", "my", "we"). Limit your entire response to exactly 2 to 3 sentences maximum.
+Respond strictly in ${language || 'English'}.`;
+
+  const prompt = context ? `Context: ${context}\n\nQuestion: ${question}` : question;
+  const messages = [
+    { role: "system", content: systemInstruction },
+    ...(chatHistory || []),
+    { role: "user", content: prompt }
+  ];
+
   try {
-    /* 
-    // To move Gemini API logic to backend:
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    */
-    
-    // Placeholder response
-    res.json({ success: true, answer: `Backend received prompt: ${prompt}` });
+    await callAzureAI(messages, model || 'gpt-4o-mini', res);
   } catch (error) {
-    console.error('AI Error:', error);
-    res.status(500).json({ error: 'Failed to generate AI response' });
+    console.error('AI chat error:', error.message);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'AI request failed' });
+    }
+  }
+});
+
+// @route   POST /api/ai/suggestions
+// @desc    Generate 3 follow-up question suggestions - keeps GitHub token server-side
+router.post('/suggestions', authMiddleware, async (req, res) => {
+  const { question, model } = req.body;
+  if (!question) return res.status(400).json({ success: false, message: 'Question is required' });
+
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  if (!GITHUB_TOKEN) {
+    return res.status(500).json({ success: false, message: 'AI service not configured.' });
+  }
+
+  const systemInstruction = `You are a helpful coding interview assistant.
+Given the interviewer's question/topic, generate exactly 3 short, highly relevant follow-up questions, related technical terms, or deep-dives that the interviewer is likely to ask next or the candidate should mention.
+Format your response strictly as a JSON array of 3 strings, for example: ["How does time complexity change?", "Explain the difference between X and Y", "What are the edge cases?"].
+Do not include any markdown styling, code block symbols (like \`\`\`json), or conversational text. Return only the raw JSON.`;
+
+  const modelsToTry = [model || 'gpt-4o-mini', ...FALLBACK_MODELS.filter(m => m !== (model || 'gpt-4o-mini'))];
+
+  for (const currentModel of modelsToTry) {
+    try {
+      const response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GITHUB_TOKEN}`
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: `Interviewer's question: "${question}"` }
+          ]
+        })
+      });
+
+      if (response.status === 429) { continue; }
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || '';
+        if (errMsg.toLowerCase().includes('rate limit')) continue;
+        throw new Error(errMsg || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      let rawContent = data.choices[0]?.message?.content || '[]';
+      rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(rawContent);
+      return res.json({ success: true, suggestions: parsed, model: currentModel });
+    } catch (e) {
+      const isLast = currentModel === modelsToTry[modelsToTry.length - 1];
+      if (isLast) {
+        console.error('Suggestions error:', e.message);
+        return res.status(500).json({ success: false, message: 'Suggestions failed' });
+      }
+    }
   }
 });
 
