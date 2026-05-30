@@ -47,7 +47,7 @@ export default function Features() {
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
               transition={{ duration: 0.5, delay: i * 0.06 }}
-              className="group relative p-6 bg-bg-tertiary/40 border border-white/[0.05] rounded-2xl hover:bg-bg-tertiary/80 hover:border-primary-light/30 transition-all duration-300 overflow-hidden hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)]"
+              className="group relative p-6 glass-panel glass-panel-hover rounded-2xl overflow-hidden"
             >
               {/* Radial gradient hover effect */}
               <div 

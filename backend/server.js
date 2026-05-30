@@ -36,7 +36,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-app.use(express.json({ limit: '10kb' })); // Prevent large payload attacks
+app.use(express.json({ limit: '50mb' })); // Prevent large payload attacks
 
 // ───── Rate Limiting ─────
 const authLimiter = rateLimit({

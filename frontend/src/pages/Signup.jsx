@@ -31,7 +31,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Background Cyber Grid & Slow Moving Neon Blobs */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 cyber-grid" />
@@ -41,7 +41,7 @@ export default function Signup() {
 
       <div className="absolute top-8 left-8 z-10">
         <Link to="/" className="flex items-center gap-2.5 font-black text-xl group">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-all">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(124,58,237,0.25)] group-hover:scale-105 transition-all">
             <Sparkles size={16} />
           </div>
           <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent font-extrabold">GhostHire</span>
@@ -49,7 +49,7 @@ export default function Signup() {
       </div>
 
       {/* Main Glass Card */}
-      <div className="w-full max-w-md bg-bg-tertiary/60 border border-white/[0.06] rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl relative z-10">
+      <div className="w-full max-w-md glass-panel rounded-3xl p-8 relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black mb-2 text-text-primary">Create Account</h2>
           <p className="text-text-secondary text-xs font-semibold">Join GhostHire and unlock real-time interview suggestions.</p>
@@ -66,7 +66,7 @@ export default function Signup() {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="John Doe"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-white/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
               />
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function Signup() {
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="john@example.com"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-white/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
               />
             </div>
           </div>
@@ -96,14 +96,14 @@ export default function Signup() {
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 placeholder="••••••••"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-white/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
               />
             </div>
           </div>
 
           <button 
             type="submit" 
-            className="w-full py-3.5 mt-6 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.3)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+            className="btn-sheen w-full py-3.5 mt-6 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
           >
             Create Candidate Profile <ArrowRight size={14} />
           </button>

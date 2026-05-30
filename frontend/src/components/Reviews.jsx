@@ -24,7 +24,7 @@ export default function Reviews() {
             ⭐ Testimonials
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-4">
-            Loved by <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">50,000+ Candidates</span>
+            Loved by <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">Ambitious Candidates</span>
           </h2>
           <p className="text-sm sm:text-base text-text-secondary max-w-[600px] mx-auto leading-relaxed">
             Real stories from verified engineers and designers who secured roles at top tech companies.
@@ -39,7 +39,7 @@ export default function Reviews() {
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="p-6 bg-bg-tertiary/30 border border-white/[0.05] rounded-2xl hover:border-primary-light/30 hover:bg-bg-tertiary/60 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 flex flex-col justify-between"
+              className="p-6 bg-bg-tertiary/30 border border-black/[0.05] rounded-2xl hover:border-primary-light/30 hover:bg-bg-tertiary/60 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all duration-300 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center gap-1 mb-4">
@@ -52,7 +52,7 @@ export default function Reviews() {
                 <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-6 font-medium">"{r.text}"</p>
               </div>
 
-              <div className="flex items-center gap-3 border-t border-white/[0.04] pt-4 mt-4">
+              <div className="flex items-center gap-3 border-t border-black/[0.04] pt-4 mt-4">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-xs font-black shadow-inner shadow-white/20">
                   {r.name.charAt(0)}
                 </div>

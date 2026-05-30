@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, Play, Upload, Settings, LogOut, Clock, Zap, FileText, Globe, Mic, MicOff, Square, MessageSquare, ChevronDown, CreditCard, HelpCircle, Plus, Key, ArrowRight, Sliders, X, Activity, RefreshCw, Shield } from 'lucide-react'
+import { Sparkles, Play, Upload, Settings, LogOut, Clock, Zap, FileText, Globe, Mic, MicOff, Square, MessageSquare, ChevronDown, CreditCard, HelpCircle, Plus, Key, ArrowRight, Sliders, X, Activity, RefreshCw, Shield, Camera } from 'lucide-react'
 
 const FALLBACK_MODELS = [
   "gpt-4o-mini",
@@ -35,6 +35,12 @@ export default function Dashboard() {
   // Question prediction and suggestions
   const [suggestions, setSuggestions] = useState([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+
+  // Assessment Solver state
+  const [solverImage, setSolverImage] = useState(null)
+  const [solverBase64, setSolverBase64] = useState(null)
+  const [solverAnswer, setSolverAnswer] = useState('')
+  const [isSolving, setIsSolving] = useState(false)
 
   // Silence-based auto-send refs
   const accumulatedSpeechRef = useRef('')
@@ -352,9 +358,9 @@ export default function Dashboard() {
 
           // Centered bar drawing
           const gradient = ctx.createLinearGradient(0, height / 2 - barHeight / 2, 0, height / 2 + barHeight / 2);
-          gradient.addColorStop(0, '#6366F1'); // Primary Indigo
-          gradient.addColorStop(0.5, '#06B6D4'); // Accent Cyber Cyan
-          gradient.addColorStop(1, '#6366F1');
+          gradient.addColorStop(0, '#8B5CF6'); // Primary Violet
+          gradient.addColorStop(0.5, '#00F5D4'); // Accent Mint
+          gradient.addColorStop(1, '#8B5CF6');
 
           ctx.fillStyle = gradient;
           
@@ -846,17 +852,69 @@ export default function Dashboard() {
     setSpeechNotification(null);
   };
 
+  const handleScreenCapture = async () => {
+    setIsSolving(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Hit the silent backend capture API instead of browser screen share
+      const captureRes = await fetch('http://localhost:5000/api/ai/capture-screen', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const captureData = await captureRes.json();
+
+      if (!captureData.success || !captureData.imageBase64) {
+        alert("Silent screen capture failed: " + (captureData.message || 'Unknown error'));
+        setIsSolving(false);
+        return;
+      }
+
+      let dataURL = captureData.imageBase64;
+
+      if (dataURL) {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ imageBase64: dataURL })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setMessages(prev => [...prev, {
+            id: Date.now(),
+            type: 'ai',
+            text: "🔍 **Screen Analyzed:**\n\n" + data.answer,
+            isStreaming: false,
+            time
+          }]);
+        } else {
+          alert("Failed to solve screen: " + (data.message || 'Error'));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Screen capture failed.");
+    } finally {
+      setIsSolving(false);
+    }
+  };
+
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-bg-primary flex relative text-text-primary">
+    <div className="h-screen max-h-screen overflow-hidden bg-transparent flex relative text-text-primary">
       {/* Background Cyber Grid */}
       <div className="absolute inset-0 pointer-events-none z-0 opacity-25">
         <div className="absolute inset-0 cyber-grid" />
       </div>
 
       {/* Sidebar Command Panel */}
-      <aside className="w-64 bg-bg-secondary border-r border-white/[0.05] flex flex-col shrink-0 hidden lg:flex relative z-10">
+      <aside className="w-64 bg-bg-secondary/40 backdrop-blur-xl border-r border-black/[0.05] flex flex-col shrink-0 hidden lg:flex relative z-10">
         {/* Brand/Logo Header */}
-        <div className="p-5 border-b border-white/[0.05] bg-white/[0.01]">
+        <div className="p-5 border-b border-black/[0.05] bg-black/[0.01]">
           <a href="/" className="flex items-center gap-2.5 font-black text-lg group">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-all"><Sparkles size={16} /></div>
             <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent font-extrabold tracking-wide">GhostHire</span>
@@ -867,6 +925,7 @@ export default function Dashboard() {
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           {[
             { icon: <Play size={16} />, label: 'New Session' },
+            { icon: <Upload size={16} />, label: 'Assessment Solver' },
             { icon: <Clock size={16} />, label: 'Session History' },
             { icon: <FileText size={16} />, label: 'My Documents' },
             { icon: <CreditCard size={16} />, label: 'Credits & Billing' },
@@ -879,7 +938,7 @@ export default function Dashboard() {
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
                 activeTab === item.label 
                   ? 'bg-primary/20 text-primary-light border border-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.12)]' 
-                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.03] border border-transparent'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.03] border border-transparent'
               }`}
             >
               <span className={activeTab === item.label ? 'text-accent' : 'text-text-tertiary'}>{item.icon}</span> 
@@ -890,12 +949,12 @@ export default function Dashboard() {
 
         {/* Dynamic Credits Dashboard */}
         <div className="p-4">
-          <div className="p-4 bg-bg-tertiary/40 border border-white/[0.06] rounded-2xl shadow-inner backdrop-blur-md">
+          <div className="p-4 bg-bg-tertiary/40 border border-black/[0.06] rounded-2xl shadow-inner backdrop-blur-md">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[0.62rem] font-bold uppercase tracking-[1.5px] text-text-tertiary">Copilot Credits</span>
               <span className="text-[0.62rem] text-primary-light font-mono font-bold bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">∞ Free Beta</span>
             </div>
-            <div className="w-full h-1.5 bg-white/[0.04] rounded-full overflow-hidden mb-3 border border-white/[0.02]">
+            <div className="w-full h-1.5 bg-black/[0.04] rounded-full overflow-hidden mb-3 border border-black/[0.02]">
               <div className="h-full w-full bg-gradient-to-r from-primary to-accent rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
             </div>
             <button onClick={handleSimulatePayment} className="w-full py-2.5 text-[0.68rem] font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_15px_rgba(99,102,241,0.3)] hover:-translate-y-0.5 transition-all">
@@ -917,7 +976,7 @@ export default function Dashboard() {
         )}
 
         {/* User Account Capsule */}
-        <div className="p-4 border-t border-white/[0.05] bg-white/[0.01]">
+        <div className="p-4 border-t border-black/[0.05] bg-black/[0.01]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white text-xs font-black shadow-[0_0_12px_rgba(99,102,241,0.25)] relative">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
@@ -943,11 +1002,11 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Workspace Frame */}
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 bg-bg-primary/95">
+      <main className="flex-1 flex flex-col overflow-hidden relative z-10 bg-bg-primary/45 backdrop-blur-md">
         {activeTab === 'New Session' && (
           <>
             {/* Header Stage Bar */}
-            <header className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
+            <header className="flex items-center justify-between px-6 py-4 border-b border-black/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
               <div className="flex items-center gap-4">
                 <h1 className="text-sm font-bold text-text-primary">
                   {isSessionActive ? (
@@ -963,12 +1022,12 @@ export default function Dashboard() {
             {/* Stage Workspace */}
             <div className="flex-1 flex overflow-hidden">
               {/* Audio/Text Live Stream Area */}
-              <div className="flex-1 flex flex-col bg-bg-primary">
+              <div className="flex-1 flex flex-col bg-transparent">
                 {!isSessionActive ? (
                   /* Inactive workspace start prompt */
                   <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="text-center max-w-sm p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-3xl backdrop-blur-md shadow-2xl">
-                      <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/25 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(99,102,241,0.2)] animate-pulse">
+                    <div className="text-center max-w-sm p-8 glass-panel rounded-3xl shadow-2xl">
+                      <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/25 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(124,58,237,0.2)] animate-pulse">
                         <Mic size={32} className="text-primary-light" />
                       </div>
                       <h2 className="text-lg font-black mb-2 text-text-primary">Start Live Copilot</h2>
@@ -977,7 +1036,7 @@ export default function Dashboard() {
                       </p>
                       <button 
                         onClick={startSession}
-                        className="px-8 py-3.5 text-xs font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2 mx-auto"
+                        className="px-8 py-3.5 text-sm font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2 mx-auto"
                       >
                         <Play size={14} /> INITIALIZE SESSION
                       </button>
@@ -1008,13 +1067,13 @@ export default function Dashboard() {
                                   setManualInput('');
                                   setSpeechNotification(null);
                                 }} 
-                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-text-secondary font-bold rounded-lg transition-all text-[0.62rem] border border-white/[0.04]"
+                                className="px-2.5 py-1 bg-black/5 hover:bg-black/10 text-text-secondary font-bold rounded-lg transition-all text-[0.62rem] border border-black/[0.04]"
                               >
                                 Clear
                               </button>
                               <button 
                                 onClick={handleSendManualMessage} 
-                                className="px-3 py-1 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-lg hover:shadow-md transition-all text-[0.62rem] border border-white/10"
+                                className="px-3 py-1 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-lg hover:shadow-md transition-all text-[0.62rem] border border-black/10"
                               >
                                 Send
                               </button>
@@ -1030,7 +1089,7 @@ export default function Dashboard() {
                               <Zap size={11} className="text-accent" /> {msg.text}
                             </div>
                           ) : msg.type === 'interviewer' ? (
-                            <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl shadow-sm">
+                            <div className="p-4 bg-black/[0.02] border border-black/[0.05] rounded-2xl shadow-sm">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-[0.65rem] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-1">🎙️ Interviewer Signal</span>
                                 <span className="text-[0.6rem] text-text-muted font-mono">{msg.time}</span>
@@ -1070,7 +1129,7 @@ export default function Dashboard() {
 
                     {/* Copilot Suggestions Board */}
                     {suggestions.length > 0 && (
-                      <div className="px-5 py-3 border-t border-white/[0.04] bg-bg-secondary/40">
+                      <div className="px-5 py-3 border-t border-black/[0.04] bg-bg-secondary/40">
                         <div className="max-w-3xl mx-auto flex flex-col gap-2">
                           <p className="text-[0.58rem] font-bold uppercase tracking-[1.5px] text-text-tertiary">Predictive Follow-ups & Sub-topics</p>
                           <div className="flex flex-wrap gap-2 animate-fadeIn">
@@ -1115,15 +1174,29 @@ export default function Dashboard() {
                     )}
 
                     {/* Input Control Deck */}
-                    <div className="p-4 border-t border-white/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
+                    <div className="p-4 border-t border-black/[0.05] bg-bg-secondary/50 backdrop-blur-xl">
                       <div className="flex items-end gap-3 max-w-3xl mx-auto">
+                        {/* Screen Capture button */}
+                        <button 
+                          onClick={handleScreenCapture}
+                          disabled={isSolving}
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group mb-[1px] ${
+                            isSolving 
+                              ? 'bg-text-tertiary cursor-not-allowed text-white' 
+                              : 'bg-black/[0.03] border-black/[0.06] text-text-secondary hover:bg-black/[0.06] hover:border-black/[0.1] hover:text-primary-light'
+                          }`}
+                          title="Capture Screen & Solve"
+                        >
+                          {isSolving ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Camera size={18} />}
+                        </button>
+                        
                         {/* Audio listening switch */}
                         <button 
                           onClick={toggleListening} 
                           className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group mb-[1px] ${
                             isListening 
                               ? 'bg-gradient-to-tr from-primary to-accent border-primary/30 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
-                              : 'bg-white/[0.03] border-white/[0.06] text-text-secondary hover:bg-white/[0.06] hover:border-white/[0.1]'
+                              : 'bg-black/[0.03] border-black/[0.06] text-text-secondary hover:bg-black/[0.06] hover:border-black/[0.1]'
                           }`}
                           title={isListening ? "Mute Acoustic Mic" : "Start Acoustic Capture"}
                         >
@@ -1147,12 +1220,12 @@ export default function Dashboard() {
                               }
                             }}
                             placeholder={isListening ? "Listening speakers... or type manual question..." : "Type manual question..."}
-                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-light/40 outline-none transition-all resize-none overflow-y-auto max-h-[200px] no-scrollbar"
+                            className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary-light/40 outline-none transition-all resize-none overflow-y-auto max-h-[200px] no-scrollbar"
                             style={{ minHeight: '44px', height: '44px' }}
                           />
                           <button 
                             onClick={handleSendManualMessage} 
-                            className="px-5 py-3 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
+                            className="px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
                           >
                             Send <ArrowRight size={13} />
                           </button>
@@ -1161,7 +1234,7 @@ export default function Dashboard() {
                         {/* Stop stream */}
                         <button 
                           onClick={stopSession}
-                          className="px-4 py-3 text-xs font-bold text-danger bg-danger/10 border border-danger/20 rounded-xl hover:bg-danger/20 transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
+                          className="px-4 py-3 text-sm font-bold text-danger bg-danger/10 border border-danger/20 rounded-xl hover:bg-danger/20 transition-all flex items-center gap-1.5 shrink-0 h-[44px]"
                         >
                           <Square size={12} /> End
                         </button>
@@ -1174,21 +1247,136 @@ export default function Dashboard() {
           </>
         )}
 
+        {activeTab === 'Assessment Solver' && (
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent relative">
+            <h2 className="text-xl font-black mb-1 text-text-primary">Online Assessment Solver</h2>
+            <p className="text-xs text-text-secondary mb-6 font-semibold">Upload or paste a screenshot (Ctrl+V) of your online assessment to get instant solutions.</p>
+            
+            <div className="max-w-4xl space-y-6">
+              {/* Upload Area */}
+              <div 
+                className="w-full border-2 border-dashed border-black/[0.1] rounded-2xl p-10 flex flex-col items-center justify-center bg-bg-tertiary/20 hover:bg-bg-tertiary/30 transition-all cursor-pointer relative"
+                onPaste={(e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                      const blob = items[i].getAsFile();
+                      setSolverImage(URL.createObjectURL(blob));
+                      const reader = new FileReader();
+                      reader.onload = () => setSolverBase64(reader.result);
+                      reader.readAsDataURL(blob);
+                      break;
+                    }
+                  }
+                }}
+              >
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setSolverImage(URL.createObjectURL(file));
+                      const reader = new FileReader();
+                      reader.onload = () => setSolverBase64(reader.result);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                
+                {solverImage ? (
+                  <div className="relative z-20 pointer-events-none">
+                    <img src={solverImage} alt="Assessment" className="max-h-64 object-contain rounded-lg shadow-md mx-auto" />
+                    <div className="mt-4 text-center">
+                      <span className="text-xs font-bold text-text-primary bg-bg-secondary px-3 py-1.5 rounded-full shadow-sm border border-black/[0.05]">Click to change image or paste again</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center z-20 pointer-events-none">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-primary-light shadow-inner">
+                      <Upload size={28} />
+                    </div>
+                    <h3 className="text-sm font-black text-text-primary mb-2">Click or Drag Image Here</h3>
+                    <p className="text-[0.72rem] text-text-secondary font-medium">You can also just press <kbd className="bg-black/5 px-1.5 py-0.5 rounded border border-black/10 text-text-primary font-mono text-[0.65rem] mx-1">Ctrl + V</kbd> to paste a screenshot directly</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              {solverImage && (
+                <div className="flex justify-center">
+                  <button 
+                    disabled={isSolving}
+                    onClick={async () => {
+                      if (!solverBase64) return;
+                      setIsSolving(true);
+                      setSolverAnswer('');
+                      try {
+                        const token = localStorage.getItem('token');
+                        const res = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ imageBase64: solverBase64 })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          setSolverAnswer(data.answer);
+                        } else {
+                          setSolverAnswer('Error: ' + (data.message || 'Failed to solve assessment.'));
+                        }
+                      } catch (err) {
+                        setSolverAnswer('Error: ' + err.message);
+                      } finally {
+                        setIsSolving(false);
+                      }
+                    }}
+                    className={`px-8 py-3 text-sm font-black text-white rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 transition-all flex items-center gap-2 ${isSolving ? 'bg-text-tertiary cursor-not-allowed' : 'bg-gradient-to-r from-primary to-accent hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)]'}`}
+                  >
+                    {isSolving ? (
+                      <>Solving Image...</>
+                    ) : (
+                      <><Zap size={16} /> Solve Question</>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Result Area */}
+              {solverAnswer && (
+                <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 border border-primary/30 rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.1)] relative">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[0.65rem] font-bold uppercase tracking-wider text-primary-light flex items-center gap-1">
+                      <Zap size={14} className="text-accent" /> GhostHire Verified Solution
+                    </span>
+                  </div>
+                  <div className="text-sm text-text-primary whitespace-pre-wrap font-medium">
+                    {solverAnswer}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'Session History' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent">
             <h2 className="text-xl font-black mb-1 text-text-primary">Session History</h2>
             <p className="text-xs text-text-secondary mb-6 font-semibold">Review your past interview solutions and AI suggestions.</p>
             
             {loadingSessions ? (
               <p className="text-xs text-text-tertiary">Retrieving history logs...</p>
             ) : sessionsList.length === 0 ? (
-              <div className="p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl text-center max-w-xl">
+              <div className="p-8 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl text-center max-w-xl">
                 <p className="text-xs text-text-tertiary font-semibold">No past sessions found. Completed sessions are saved automatically.</p>
               </div>
             ) : (
               <div className="space-y-4 max-w-4xl">
                 {sessionsList.map((session, i) => (
-                  <div key={i} className="p-5 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl flex items-center justify-between hover:border-primary-light/35 hover:bg-bg-tertiary/40 transition-all">
+                  <div key={i} className="p-5 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl flex items-center justify-between hover:border-primary-light/35 hover:bg-bg-tertiary/40 transition-all">
                     <div>
                       <span className="text-[0.62rem] text-primary-light font-black uppercase tracking-[1px] bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
                         {new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1204,7 +1392,7 @@ export default function Dashboard() {
                       <span className="px-2.5 py-1 bg-success/10 border border-success/20 text-success text-[0.62rem] font-bold rounded-full">Saved</span>
                       <button 
                         onClick={() => alert(JSON.stringify(session.transcript, null, 2))} 
-                        className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-xl text-xs font-bold text-text-primary transition-all"
+                        className="px-4 py-2 bg-black/[0.03] hover:bg-black/[0.06] border border-black/[0.06] rounded-xl text-xs font-bold text-text-primary transition-all"
                       >
                         Show Logs
                       </button>
@@ -1217,13 +1405,13 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'My Documents' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent">
             <h2 className="text-xl font-black mb-1 text-text-primary">User Guide & Stealth Support</h2>
             <p className="text-xs text-text-secondary mb-8 font-semibold">Learn how to maximize your GhostHire copilot for interview dominance.</p>
             
             <div className="max-w-4xl space-y-6">
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl shadow-sm">
-                <h3 className="text-sm font-black text-text-primary mb-4 uppercase tracking-wider flex items-center gap-2 border-b border-white/[0.04] pb-2">
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl shadow-sm">
+                <h3 className="text-sm font-black text-text-primary mb-4 uppercase tracking-wider flex items-center gap-2 border-b border-black/[0.04] pb-2">
                   <Play size={14} className="text-accent" /> 🚀 Instant Launch Checklist
                 </h3>
                 <div className="space-y-4">
@@ -1251,15 +1439,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl">
-                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-white/[0.04] pb-2">🔒 Stealth Screen Shielding</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl">
+                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-black/[0.04] pb-2">🔒 Stealth Screen Shielding</h3>
                 <p className="text-[0.72rem] text-text-secondary leading-relaxed font-semibold">
                   GhostHire operates at deep desktop levels using hardware window flags. When sharing desktops via Zoom, Teams, Meet or specialized hiring code checkers, they only capture a completely transparent, dark or empty canvas. Your copilot operates in absolute privacy.
                 </p>
               </div>
 
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl">
-                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-white/[0.04] pb-2">💡 Tips for 100% Accuracy</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl">
+                <h3 className="text-sm font-black text-text-primary mb-3 uppercase tracking-wider border-b border-black/[0.04] pb-2">💡 Tips for 100% Accuracy</h3>
                 <ul className="space-y-2 text-[0.72rem] text-text-secondary list-none">
                   <li className="flex items-center gap-2"><span className="text-accent font-bold">▪</span> <strong>Ideal Room:</strong> Work in minimal reverb to help neural phonetic decoders.</li>
                   <li className="flex items-center gap-2"><span className="text-accent font-bold">▪</span> <strong>System Driver:</strong> Use default system audio outputs. Headphones operate fully.</li>
@@ -1271,7 +1459,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'Credits & Billing' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent">
             <h2 className="text-xl font-black mb-1 text-text-primary">Credits & Invoices</h2>
             <p className="text-xs text-text-secondary mb-6 font-semibold">Track plan states, billings, and credit usages.</p>
             
@@ -1284,7 +1472,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center md:text-right shrink-0">
                   <div className="text-2xl font-black text-text-primary">∞ <span className="text-xs font-medium text-text-tertiary">Credits active</span></div>
-                  <button onClick={handleSimulatePayment} className="mt-3 px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all">Upgrade Pro</button>
+                  <button onClick={handleSimulatePayment} className="mt-3 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all">Upgrade Pro</button>
                 </div>
               </div>
 
@@ -1293,16 +1481,16 @@ export default function Dashboard() {
                 {loadingInvoices ? (
                   <p className="text-xs text-text-tertiary">Loading invoice records...</p>
                 ) : invoicesList.length === 0 ? (
-                  <div className="p-8 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl text-center max-w-2xl">
+                  <div className="p-8 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl text-center max-w-2xl">
                     <p className="text-xs text-text-secondary font-semibold">No transactions active. Invoices reflect payment completions.</p>
-                    <button onClick={handleSimulatePayment} className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl">
+                    <button onClick={handleSimulatePayment} className="mt-4 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl">
                       Unlock Full Pro Access (₹1,499)
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl divide-y divide-white/[0.04] overflow-hidden">
+                  <div className="bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl divide-y divide-white/[0.04] overflow-hidden">
                     {invoicesList.map((inv, i) => (
-                      <div key={i} className="p-4 flex items-center justify-between text-xs sm:text-sm hover:bg-white/[0.01] transition-colors">
+                      <div key={i} className="p-4 flex items-center justify-between text-xs sm:text-sm hover:bg-black/[0.01] transition-colors">
                         <div>
                           <span className="font-bold text-text-primary">{inv.invoiceId}</span>
                           <span className="text-[0.68rem] text-text-tertiary font-semibold ml-4">
@@ -1323,13 +1511,13 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'Settings' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent">
             <h2 className="text-xl font-black mb-1 text-text-primary">System Settings</h2>
             <p className="text-xs text-text-secondary mb-6 font-semibold">Configure AI agents, model routing, and inputs.</p>
             
             <div className="max-w-3xl space-y-6">
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
-                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Stealth Shields</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-black/[0.04] pb-2 uppercase tracking-wider">Stealth Shields</h3>
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs sm:text-sm font-bold text-text-primary">Dynamic Anti-Capture</h4>
@@ -1339,15 +1527,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
-                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Model Selection</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-black/[0.04] pb-2 uppercase tracking-wider">Model Selection</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[0.62rem] font-bold text-text-tertiary uppercase tracking-[1.5px] mb-2">Primary AI Intelligence</label>
                     <select 
                       value={githubModel} 
                       onChange={e => setGithubModel(e.target.value)}
-                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
+                      className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
                     >
                       <option value="gpt-4o-mini" className="bg-bg-tertiary text-text-primary">GPT-4o-mini (Uncapped • Sub-second Latency)</option>
                       <option value="gpt-4o" className="bg-bg-tertiary text-text-primary">GPT-4o (High-level Algorithms & Logic)</option>
@@ -1358,15 +1546,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
-                <h3 className="text-sm font-bold text-text-primary border-b border-white/[0.04] pb-2 uppercase tracking-wider">Audio & Languages</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary border-b border-black/[0.04] pb-2 uppercase tracking-wider">Audio & Languages</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[0.62rem] font-bold text-text-tertiary uppercase tracking-[1.5px] mb-2">Target Speech/Transcript Language</label>
                     <select 
                       value={selectedLang} 
                       onChange={e => setSelectedLang(e.target.value)}
-                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
+                      className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl px-4 py-3 text-xs sm:text-sm text-text-primary focus:border-primary-light/50 transition-colors cursor-pointer outline-none font-bold"
                     >
                       <option value="English" className="bg-bg-tertiary text-text-primary">🇺🇸 English</option>
                       <option value="Hindi" className="bg-bg-tertiary text-text-primary">🇮🇳 Hindi</option>
@@ -1375,26 +1563,26 @@ export default function Dashboard() {
                       <option value="Japanese" className="bg-bg-tertiary text-text-primary">🇯🇵 Japanese</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
+                  <div className="flex items-center justify-between pt-3 border-t border-black/[0.03]">
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-text-primary">Earbuds Mode (System Audio)</h4>
                       <p className="text-[0.72rem] text-text-secondary mt-0.5">Silently capture system audio for earbuds. (Requires Desktop App)</p>
                     </div>
                     <button 
                       onClick={() => setEarbudsMode(!earbudsMode)}
-                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${earbudsMode ? 'bg-primary-light' : 'bg-white/[0.08]'}`}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${earbudsMode ? 'bg-primary-light' : 'bg-black/[0.08]'}`}
                     >
                       <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${earbudsMode ? 'translate-x-4 shadow-sm' : 'translate-x-0'}`} />
                     </button>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.03]">
+                  <div className="flex items-center justify-between pt-3 border-t border-black/[0.03]">
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-text-primary">Acoustic Auto-Submit</h4>
                       <p className="text-[0.72rem] text-text-secondary mt-0.5">Stream transcripts directly to AI on speech pauses.</p>
                     </div>
                     <button 
                       onClick={() => setAutoSend(!autoSend)}
-                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${autoSend ? 'bg-primary-light' : 'bg-white/[0.08]'}`}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 ${autoSend ? 'bg-primary-light' : 'bg-black/[0.08]'}`}
                     >
                       <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${autoSend ? 'translate-x-4 shadow-sm' : 'translate-x-0'}`} />
                     </button>
@@ -1406,13 +1594,13 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'Help & Support' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-bg-primary">
+          <div className="flex-1 p-8 overflow-y-auto bg-transparent">
             <h2 className="text-xl font-black mb-1 text-text-primary">Candidate Support</h2>
             <p className="text-xs text-text-secondary mb-6 font-semibold">Help manuals, specifications, and connections.</p>
             
             <div className="max-w-4xl space-y-6">
-              <div className="p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl space-y-4">
-                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-white/[0.04] pb-2">Common Troubleshoot</h3>
+              <div className="p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-black/[0.04] pb-2">Common Troubleshoot</h3>
                 <div className="space-y-4 divide-y divide-white/[0.04]">
                   {[
                     { q: 'Is it completely undetectable during screen sharing?', a: 'Yes! Using our system level mainWindow.setContentProtection(true) setting, screen share softwares (Zoom, OBS, Teams) will only see a black window instead of GhostHire, maintaining your full stealth mode.' },
@@ -1433,7 +1621,7 @@ export default function Dashboard() {
       {/* ===== Paywall Premium Glass Modal ===== */}
       {showPaywall && !isAdmin && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md">
-          <div className="bg-[#0C0E1F] border border-white/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center relative max-w-md w-full mx-4 rounded-3xl p-8 animate-float">
+          <div className="bg-[#0C0E1F] border border-black/[0.08] shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center relative max-w-md w-full mx-4 rounded-3xl p-8 animate-float">
             {/* Pulsing neon icon */}
             <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center bg-gradient-to-tr from-primary to-accent shadow-[0_0_20px_rgba(99,102,241,0.4)]">
               <Zap size={28} className="text-white" />
@@ -1445,8 +1633,8 @@ export default function Dashboard() {
             </p>
 
             {/* Premium specs list */}
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 mb-6 text-left shadow-inner">
-              <div className="flex items-center justify-between mb-3 border-b border-white/[0.03] pb-2.5">
+            <div className="bg-black/[0.02] border border-black/[0.05] rounded-2xl p-5 mb-6 text-left shadow-inner">
+              <div className="flex items-center justify-between mb-3 border-b border-black/[0.03] pb-2.5">
                 <span className="text-xs font-black uppercase tracking-wider text-accent">Pro Plan Feature Pack</span>
                 <span className="text-xl font-black text-text-primary">₹1,499<span className="text-xs font-normal text-text-tertiary">/mo</span></span>
               </div>

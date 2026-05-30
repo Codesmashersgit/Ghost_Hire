@@ -11,7 +11,7 @@ export default function Footer() {
   }, [])
 
   return (
-    <footer className="border-t border-white/[0.05] bg-bg-secondary/40 relative z-10">
+    <footer className="border-t border-black/[0.05] bg-bg-secondary/40 relative z-10">
       {/* CTA Banner */}
       <div className="max-w-[1200px] mx-auto px-6 py-20">
         <div className="relative p-12 md:p-16 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/5 border border-primary/30 rounded-3xl text-center overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
@@ -26,7 +26,7 @@ export default function Footer() {
               Ready to <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">Ace Your Interview?</span>
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary max-w-md mx-auto mb-8 font-medium">
-              Join 50,000+ candidates who unlocked their full technical potential and landed stellar job offers with GhostHire.
+              Join ambitious candidates who unlocked their full technical potential and landed stellar job offers with GhostHire.
             </p>
             <button 
               onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signin')}
@@ -82,7 +82,7 @@ export default function Footer() {
                 <a 
                   key={i} 
                   href="#" 
-                  className="w-9 h-9 bg-white/[0.03] border border-white/[0.06] rounded-xl flex items-center justify-center text-text-tertiary hover:text-text-primary hover:border-primary-light/40 hover:bg-white/[0.08] transition-all"
+                  className="w-9 h-9 bg-black/[0.03] border border-black/[0.06] rounded-xl flex items-center justify-center text-text-tertiary hover:text-text-primary hover:border-primary-light/40 hover:bg-black/[0.08] transition-all"
                 >
                   <Icon size={14} />
                 </a>
@@ -91,7 +91,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.04] text-[0.7rem] font-medium text-text-muted">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-black/[0.04] text-[0.7rem] font-medium text-text-muted">
           <p>© 2026 GhostHire. All rights reserved.</p>
           <p className="flex items-center gap-1">Made with <span className="text-primary-light">💜</span> for ambitious candidates worldwide</p>
         </div>

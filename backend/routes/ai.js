@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import screenshot from 'screenshot-desktop';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123';
@@ -163,6 +164,78 @@ Do not include any markdown styling, code block symbols (like \`\`\`json), or co
         return res.status(500).json({ success: false, message: 'Suggestions failed' });
       }
     }
+  }
+});
+
+// @route   GET /api/ai/capture-screen
+// @desc    Silently capture the host desktop screen
+router.get('/capture-screen', authMiddleware, async (req, res) => {
+  try {
+    const imgBuffer = await screenshot();
+    const base64 = imgBuffer.toString('base64');
+    res.json({ success: true, imageBase64: `data:image/png;base64,${base64}` });
+  } catch (error) {
+    console.error('Screenshot capture error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to capture screen' });
+  }
+});
+
+// @route   POST /api/ai/solve-screenshot
+// @desc    Process a screenshot and extract the answer using Gemini Vision model
+router.post('/solve-screenshot', authMiddleware, async (req, res) => {
+  const { imageBase64 } = req.body;
+  if (!imageBase64) return res.status(400).json({ success: false, message: 'Image is required' });
+
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({ success: false, message: 'Gemini API key not configured on server.' });
+  }
+
+  try {
+    // Import GoogleGenerativeAI dynamically from the SDK
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
+    
+    // Extract base64 details
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    
+    const imagePart = {
+      inlineData: {
+        data: base64Data,
+        mimeType: "image/png"
+      }
+    };
+
+    const systemInstruction = `You are an expert assessment solver.
+The user has provided an image of a coding problem (like LeetCode), multiple choice question (MCQ), or general assessment.
+Your goal is to extract the question and provide the direct, most correct answer.
+If it is a coding question, provide ONLY the clean, fully functional, optimized code block (without backticks if possible, or just the standard markdown block). Do not explain the code.
+If it is multiple choice, provide ONLY the correct option text or number.
+Do NOT include any conversational filler, greetings, or explanation.
+Keep it extremely concise so it can be used instantly.`;
+
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: systemInstruction
+    });
+
+    const result = await model.generateContent([
+      "Solve this assessment question. Provide only the final answer or code.",
+      imagePart
+    ]);
+
+    let answer = result.response.text() || '';
+    
+    // Clean up code block backticks if present and it's the only thing
+    if (answer.startsWith('```') && answer.endsWith('```')) {
+      const lines = answer.split('\n');
+      answer = lines.slice(1, -1).join('\n');
+    }
+
+    return res.json({ success: true, answer: answer.trim() });
+  } catch (error) {
+    console.error('Gemini vision solve error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to solve screenshot using Gemini API' });
   }
 });
 

@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         
         {/* Loading Widget */}
         <div className="relative flex items-center justify-center">
-          <div className="w-20 h-20 rounded-full border border-white/5 bg-bg-tertiary/40 backdrop-blur-md flex items-center justify-center neon-glow-primary">
+          <div className="w-20 h-20 rounded-full border border-black/5 bg-bg-tertiary/40 backdrop-blur-md flex items-center justify-center neon-glow-primary">
             <Shield size={32} className="text-primary animate-pulse-glow" />
           </div>
           {/* Orbiting spinner ring */}
@@ -181,16 +181,16 @@ export default function AdminDashboard() {
       <div className="absolute bottom-10 left-1/4 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[150px] pointer-events-none z-0 animate-aura-2"></div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-panel border-b border-white/5 px-8 py-4 flex items-center justify-between shrink-0">
+      <header className="sticky top-0 z-50 glass-panel border-b border-black/5 px-8 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-white/5 hover:bg-white/10 hover:border-white/20 border border-white/5 rounded-xl transition-all duration-300 flex items-center gap-2 text-xs font-semibold text-text-secondary group"
+            className="px-4 py-2 bg-black/5 hover:bg-black/10 hover:border-black/20 border border-black/5 rounded-xl transition-all duration-300 flex items-center gap-2 text-xs font-semibold text-text-secondary group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
             <span>Exit Dashboard</span>
           </button>
-          <div className="w-px h-6 bg-white/10" />
+          <div className="w-px h-6 bg-black/10" />
           <h1 className="text-lg font-bold tracking-tight flex items-center gap-3">
             <span className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white neon-glow-primary">
               <Shield size={16} />
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative hidden md:flex items-center px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[11px] font-mono text-text-secondary">
+          <div className="relative hidden md:flex items-center px-3 py-1 bg-black/5 border border-black/10 rounded-full text-[11px] font-mono text-text-secondary">
             <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
             System Live: Decrypted
           </div>
@@ -305,13 +305,13 @@ export default function AdminDashboard() {
         </section>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-white/5 gap-1 shrink-0 p-1 bg-white/[0.02] rounded-xl max-w-fit">
+        <div className="flex border-b border-black/5 gap-1 shrink-0 p-1 bg-black/[0.02] rounded-xl max-w-fit">
           <button 
             onClick={() => setActiveSubTab('users')}
             className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
               activeSubTab === 'users' 
                 ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
-                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-black/5'
             }`}
           >
             <Users size={14} /> <span>User Management</span>
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
             className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
               activeSubTab === 'sessions' 
                 ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
-                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-black/5'
             }`}
           >
             <FileText size={14} /> <span>Transcript Logs</span>
@@ -331,7 +331,7 @@ export default function AdminDashboard() {
             className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 ${
               activeSubTab === 'invoices' 
                 ? 'bg-primary text-white shadow-md shadow-primary/20 neon-glow-primary' 
-                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-black/5'
             }`}
           >
             <Receipt size={14} /> <span>Revenue & Invoices</span>
@@ -358,15 +358,15 @@ export default function AdminDashboard() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search by name or email..."
-                    className="w-full bg-bg-tertiary/60 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-text-primary outline-none focus:border-primary-light/50 focus:ring-1 focus:ring-primary-light/50 transition-all duration-300"
+                    className="w-full bg-bg-tertiary/60 border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-text-primary outline-none focus:border-primary-light/50 focus:ring-1 focus:ring-primary-light/50 transition-all duration-300"
                   />
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-white/5">
+              <div className="overflow-x-auto rounded-xl border border-black/5">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
+                    <tr className="border-b border-black/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
                       <th className="px-6 py-4">User Details</th>
                       <th className="px-6 py-4">Role</th>
                       <th className="px-6 py-4">Usage Today</th>
@@ -378,7 +378,7 @@ export default function AdminDashboard() {
                     {filteredUsers.map(user => {
                       const minsUsed = Math.round((user.dailyUsage?.secondsUsed || 0) / 60);
                       return (
-                        <tr key={user._id} className="hover:bg-white/[0.02] transition-colors duration-200">
+                        <tr key={user._id} className="hover:bg-black/[0.02] transition-colors duration-200">
                           <td className="px-6 py-4">
                             <div className="font-bold text-text-primary text-sm">{user.name}</div>
                             <div className="text-[11px] text-text-secondary mt-0.5 font-mono">{user.email}</div>
@@ -400,7 +400,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-between text-[11px] font-semibold text-text-secondary">
                                   <span>{minsUsed} / 10 min</span>
                                 </div>
-                                <div className="w-full bg-white/10 rounded-full h-1">
+                                <div className="w-full bg-black/10 rounded-full h-1">
                                   <div 
                                     className="bg-gradient-to-r from-primary to-accent h-1 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
                                     style={{ width: `${Math.min(100, (minsUsed / 10) * 100)}%` }} 
@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handleToggleAdmin(user._id, user.name)}
                                 title={user.isAdmin ? "Revoke Admin Status" : "Grant Admin Privilege"}
-                                className="p-2 text-text-secondary bg-white/5 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/20 rounded-lg hover:text-purple-400 transition-all duration-300"
+                                className="p-2 text-text-secondary bg-black/5 hover:bg-purple-500/10 border border-black/5 hover:border-purple-500/20 rounded-lg hover:text-purple-400 transition-all duration-300"
                               >
                                 <Shield size={13} />
                               </button>
@@ -425,7 +425,7 @@ export default function AdminDashboard() {
                                 <button
                                   onClick={() => handleResetUsage(user._id, user.name)}
                                   title="Reset Daily Timer"
-                                  className="p-2 text-text-secondary bg-white/5 hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/20 rounded-lg hover:text-amber-400 transition-all duration-300"
+                                  className="p-2 text-text-secondary bg-black/5 hover:bg-amber-500/10 border border-black/5 hover:border-amber-500/20 rounded-lg hover:text-amber-400 transition-all duration-300"
                                 >
                                   <RotateCcw size={13} />
                                 </button>
@@ -433,7 +433,7 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handleDeleteUser(user._id, user.name)}
                                 title="Delete User Account"
-                                className="p-2 text-text-secondary bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 rounded-lg hover:text-red-400 transition-all duration-300"
+                                className="p-2 text-text-secondary bg-black/5 hover:bg-red-500/10 border border-black/5 hover:border-red-500/20 rounded-lg hover:text-red-400 transition-all duration-300"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -463,10 +463,10 @@ export default function AdminDashboard() {
                 <p className="text-xs text-text-secondary mt-0.5">Monitor system transcript logs, AI assistant notes, and metadata generated across all user live feeds.</p>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-white/5">
+              <div className="overflow-x-auto rounded-xl border border-black/5">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
+                    <tr className="border-b border-black/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
                       <th className="px-6 py-4">Title / Context</th>
                       <th className="px-6 py-4">Owner Account</th>
                       <th className="px-6 py-4">Duration</th>
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {sessions.map(sess => (
-                      <tr key={sess._id} className="hover:bg-white/[0.02] transition-colors duration-200">
+                      <tr key={sess._id} className="hover:bg-black/[0.02] transition-colors duration-200">
                         <td className="px-6 py-4">
                           <div className="font-bold text-text-primary text-sm flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping"></span>
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-2 py-0.5 bg-white/5 rounded-md font-mono text-[11px] text-text-secondary border border-white/5">
+                          <span className="px-2 py-0.5 bg-black/5 rounded-md font-mono text-[11px] text-text-secondary border border-black/5">
                             {sess.duration || 'N/A'}
                           </span>
                         </td>
@@ -529,10 +529,10 @@ export default function AdminDashboard() {
                 <p className="text-xs text-text-secondary mt-0.5">Track real-time upgrade logs, stripe events, and simulated customer conversions.</p>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-white/5">
+              <div className="overflow-x-auto rounded-xl border border-black/5">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
+                    <tr className="border-b border-black/5 text-text-tertiary font-bold uppercase tracking-wider bg-bg-tertiary/40">
                       <th className="px-6 py-4">Invoice Hash</th>
                       <th className="px-6 py-4">Customer</th>
                       <th className="px-6 py-4">Amount</th>
@@ -542,7 +542,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {invoices.map(invoice => (
-                      <tr key={invoice._id} className="hover:bg-white/[0.02] transition-colors duration-200">
+                      <tr key={invoice._id} className="hover:bg-black/[0.02] transition-colors duration-200">
                         <td className="px-6 py-4 font-mono font-bold text-primary-light text-xs">
                           {invoice.invoiceId}
                         </td>

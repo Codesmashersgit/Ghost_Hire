@@ -11,20 +11,16 @@ export default function Hero() {
     setIsLoggedIn(!!localStorage.getItem('token'))
   }, [])
 
-  const stats = [
-    { icon: <Users size={16} />, value: '50,000+', label: 'Active Candidates' },
-    { icon: <Zap size={16} />, value: '2M+', label: 'Sessions Guided' },
-    { icon: <Star size={16} />, value: '4.95/5', label: 'Candidate Rating' },
-  ]
+
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-24 pb-12" id="hero">
-      {/* Dynamic Cyber Grid & Animated Light Blobs */}
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-40 pb-12" id="hero">
+      {/* Floating Glow Orbs */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute inset-0 cyber-grid opacity-75" />
-        <div className="absolute w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -top-32 -right-16 animate-aura-1" />
-        <div className="absolute w-[450px] h-[450px] bg-accent/8 rounded-full blur-[100px] -bottom-32 -left-16 animate-aura-2" />
-        <div className="absolute w-[350px] h-[350px] bg-primary-light/5 rounded-full blur-[100px] top-1/3 left-1/3 animate-float" />
+        <div className="absolute w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] -top-40 -right-20 animate-aura-1" />
+        <div className="absolute w-[500px] h-[500px] bg-accent/15 rounded-full blur-[120px] -bottom-40 -left-20 animate-aura-2" />
+        <div className="absolute w-[400px] h-[400px] bg-primary-light/10 rounded-full blur-[100px] top-1/3 left-1/4 animate-float" />
+        <div className="absolute w-[250px] h-[250px] bg-accent/10 rounded-full blur-[80px] bottom-1/4 right-1/4 animate-aura-1" style={{ animationDelay: '8s' }} />
       </div>
 
       <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10 w-full">
@@ -65,7 +61,7 @@ export default function Hero() {
                 <button onClick={() => navigate('/signup')} className="px-8 py-4 text-xs font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
                   Start Free Trial <ArrowRight size={16} />
                 </button>
-                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-xs font-bold text-text-primary bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-xs font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
                   <Play size={16} className="text-accent" /> Start Demo
                 </button>
               </>
@@ -74,26 +70,11 @@ export default function Hero() {
 
           <div className="flex items-center gap-5 mb-10 flex-wrap text-[0.72rem] text-text-tertiary">
             <div className="flex items-center gap-1.5"><Shield size={14} className="text-success" /> Completely Stealth Operations</div>
-            <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+            <div className="w-1.5 h-1.5 rounded-full bg-black/20" />
             <div className="flex items-center gap-1.5"><Sparkles size={14} className="text-accent" /> Compatible with Zoom, Teams, Meet</div>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.4 }} 
-            className="flex gap-8 flex-wrap border-t border-border/40 pt-8"
-          >
-            {stats.map((stat, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/[0.03] border border-white/[0.06] rounded-xl flex items-center justify-center text-accent shadow-sm">{stat.icon}</div>
-                <div className="flex flex-col">
-                  <span className="text-base font-black text-text-primary leading-tight">{stat.value}</span>
-                  <span className="text-[0.7rem] font-semibold text-text-tertiary">{stat.label}</span>
-                </div>
-              </div>
-            ))}
-          </motion.div>
+
         </motion.div>
 
         {/* Right Preview Panel (Grid Column 5) */}
@@ -104,9 +85,9 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.2 }}
         >
           {/* Glass Windows container */}
-          <div className="glass-panel rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.15)] border-white/[0.08]">
+          <div className="glass-panel rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.15)] border-black/[0.08]">
             {/* Window Header */}
-            <div className="flex items-center gap-3 px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06]">
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-black/[0.02] border-b border-black/[0.06]">
               <div className="flex gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-danger/70 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-warning/70" />
@@ -118,7 +99,7 @@ export default function Hero() {
             {/* Visualizer Area */}
             <div className="p-5 flex flex-col gap-4">
               {/* Interviewer Speech bubble */}
-              <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+              <div className="p-4 bg-black/[0.02] border border-black/[0.05] rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[0.65rem] font-bold uppercase tracking-wider text-text-tertiary">Interviewer Question</span>
                   <span className="text-[0.62rem] px-2 py-0.5 bg-danger/10 border border-danger/20 rounded-full text-danger font-semibold flex items-center gap-1">
@@ -160,10 +141,10 @@ export default function Hero() {
           </div>
 
           {/* Floating badges */}
-          <div className="absolute -top-5 -right-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-success shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float">
+          <div className="absolute -top-5 -right-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-black/[0.08] rounded-xl text-xs font-bold text-success shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float">
             <Shield size={14} className="text-success" /> 100% Undetectable
           </div>
-          <div className="absolute -bottom-5 -left-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-accent shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float" style={{ animationDelay: '1.2s' }}>
+          <div className="absolute -bottom-5 -left-5 hidden sm:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-black/[0.08] rounded-xl text-xs font-bold text-accent shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float" style={{ animationDelay: '1.2s' }}>
             <Zap size={14} className="text-accent" /> Real-time Streaming
           </div>
         </motion.div>

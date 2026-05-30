@@ -80,7 +80,7 @@ export default function Pricing() {
 
         {/* Toggle Switch */}
         <div className="flex justify-center mb-14">
-          <div className="flex items-center bg-bg-tertiary/40 border border-white/[0.06] rounded-full p-1.5 backdrop-blur-md">
+          <div className="flex items-center bg-bg-tertiary/40 border border-black/[0.06] rounded-full p-1.5 backdrop-blur-md">
             <button 
               onClick={() => setBillingCycle('monthly')}
               className={`px-6 py-2 text-xs font-bold rounded-full transition-all duration-300 ${billingCycle === 'monthly' ? 'bg-gradient-to-r from-primary to-accent text-white shadow-md shadow-primary/20' : 'text-text-secondary hover:text-text-primary'}`}
@@ -113,7 +113,7 @@ export default function Pricing() {
                 className={`relative p-8 rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
                   plan.popular
                     ? 'bg-bg-tertiary border-primary-light/50 shadow-[0_20px_50px_rgba(99,102,241,0.15)] scale-[1.04] md:scale-[1.05] z-10'
-                    : 'bg-bg-tertiary/40 border-white/[0.05] hover:border-primary-light/30 hover:bg-bg-tertiary/60'
+                    : 'bg-bg-tertiary/40 border-black/[0.05] hover:border-primary-light/30 hover:bg-bg-tertiary/60'
                 }`}
               >
                 {/* Popular Pill badge */}
@@ -132,7 +132,7 @@ export default function Pricing() {
                   <h3 className="text-xl font-bold mb-1.5 text-text-primary">{plan.name}</h3>
                   <p className="text-[0.72rem] text-text-tertiary leading-relaxed mb-6">{plan.desc}</p>
                   
-                  <div className="flex items-baseline gap-1 mb-8 border-b border-white/[0.05] pb-6">
+                  <div className="flex items-baseline gap-1 mb-8 border-b border-black/[0.05] pb-6">
                     <span className="text-4xl font-black text-text-primary tracking-tight">{calculatedPrice}</span>
                     <span className="text-xs text-text-tertiary font-medium">
                       {billingCycle === 'yearly' && plan.period === '/month' ? '/year' : plan.period}
@@ -154,7 +154,7 @@ export default function Pricing() {
                   className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all duration-300 ${
                     plan.popular
                       ? 'bg-gradient-to-r from-primary to-accent text-white shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] hover:-translate-y-0.5'
-                      : 'bg-white/[0.04] border border-white/[0.08] text-text-primary hover:bg-white/[0.08] hover:border-primary/40'
+                      : 'bg-black/[0.04] border border-black/[0.08] text-text-primary hover:bg-black/[0.08] hover:border-primary/40'
                   }`}
                 >
                   {plan.cta}
