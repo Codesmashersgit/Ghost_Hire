@@ -26,7 +26,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Helper: call Azure GitHub AI with fallback models (streaming)
-const callAzureAI = async (messages, model, res, preferredModel) => {
+const callAzureAI = async (messages, model, res) => {
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   if (!GITHUB_TOKEN) {
     return res.status(500).json({ success: false, message: 'AI service not configured.' });
@@ -59,19 +59,32 @@ const callAzureAI = async (messages, model, res, preferredModel) => {
         throw new Error(errMsg || `HTTP ${response.status}`);
       }
 
-      // Stream the response back to the client
+      // ── Streaming headers ─────────────────────────────────────────────────
+      // X-Accel-Buffering: no  → tells Nginx / Vite proxy NOT to buffer
+      // flushHeaders()         → sends headers immediately so proxy knows
+      //                          a streaming response is coming (fixes 502)
       res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.flushHeaders(); // CRITICAL: must flush before any res.write()
+
+      // Guard against client disconnecting mid-stream
+      let clientGone = false;
+      res.socket?.on('close', () => { clientGone = true; });
 
       const reader = response.body;
       const decoder = new TextDecoder();
 
       for await (const chunk of reader) {
+        if (clientGone) break;
         const text = decoder.decode(chunk, { stream: true });
         res.write(text);
+        // Flush each chunk immediately so proxy passes it through right away
+        if (typeof res.flush === 'function') res.flush();
       }
-      res.end();
+
+      if (!clientGone) res.end();
       return;
     } catch (e) {
       console.warn(`Error with model ${currentModel}:`, e.message);
