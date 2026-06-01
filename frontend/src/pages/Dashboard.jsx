@@ -63,7 +63,10 @@ export default function Dashboard() {
     return localStorage.getItem('ghosthire_earbuds') === 'true';
   })
 
+  // Ref so async recording functions always read the latest earbudsMode value
+  const earbudsModeRef = useRef(earbudsMode);
   useEffect(() => {
+    earbudsModeRef.current = earbudsMode;
     localStorage.setItem('ghosthire_earbuds', earbudsMode);
   }, [earbudsMode])
   
@@ -405,9 +408,31 @@ export default function Dashboard() {
     chunksRef.current = [];
     isProcessingRef.current = false;
     try {
-      // Use standard microphone instead of screen share
-      let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+      let stream;
+
+      if (earbudsModeRef.current) {
+        // ── EARBUDS MODE ──────────────────────────────────────────────────────
+        // Interviewer's voice arrives through earbuds/speakers as system audio.
+        // getDisplayMedia with audio:'loopback' (handled in Electron main.js)
+        // captures that system audio so Deepgram can transcribe the interviewer.
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            audio: true,
+            video: { width: 1, height: 1 } // minimal video required by spec
+          });
+          // We only need audio — drop the video track immediately
+          displayStream.getVideoTracks().forEach(track => track.stop());
+          stream = new MediaStream(displayStream.getAudioTracks());
+        } catch (displayErr) {
+          console.warn('[Earbuds] getDisplayMedia failed, falling back to mic:', displayErr);
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+      } else {
+        // ── NORMAL MODE ───────────────────────────────────────────────────────
+        // Capture the user's own microphone (candidate speaking).
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
       if (sessionId !== recordingSessionIdRef.current) {
         stream.getTracks().forEach(track => track.stop());
         return;

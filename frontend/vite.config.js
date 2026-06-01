@@ -9,11 +9,33 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      // SSE streaming route — must NOT buffer the response
+      '/api/ai/chat': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        // Disable response buffering so SSE chunks pass through immediately
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            console.error('[Vite Proxy] /api/ai/chat error:', err.message);
+          });
+          proxy.on('proxyRes', (proxyRes) => {
+            // Forward the no-buffering header downstream
+            proxyRes.headers['x-accel-buffering'] = 'no';
+          });
+        },
+      },
+      // All other API routes (auth, sessions, usage, etc.)
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[Vite Proxy] /api error:', err.message);
+          });
+        },
       },
     },
   },
