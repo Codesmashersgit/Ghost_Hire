@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, User, Mail, Lock } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
