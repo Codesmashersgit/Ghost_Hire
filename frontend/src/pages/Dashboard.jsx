@@ -9,6 +9,8 @@ const FALLBACK_MODELS = [
   "Phi-3-medium-128k-instruct"
 ];
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [isSessionActive, setIsSessionActive] = useState(false)
@@ -129,7 +131,7 @@ export default function Dashboard() {
     if (!uid) return;
     setLoadingSessions(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/sessions?userId=${uid}`);
+      const res = await fetch(`${API_URL}/api/sessions?userId=${uid}`);
       const data = await res.json();
       if (data.success) {
         setSessionsList(data.data);
@@ -145,7 +147,7 @@ export default function Dashboard() {
     if (!uid) return;
     setLoadingInvoices(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/invoices?userId=${uid}`);
+      const res = await fetch(`${API_URL}/api/invoices?userId=${uid}`);
       const data = await res.json();
       if (data.success) {
         setInvoicesList(data.data);
@@ -163,7 +165,7 @@ export default function Dashboard() {
     try {
       const parsed = JSON.parse(userData);
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/invoices/pay', {
+      const res = await fetch(`${API_URL}/api/invoices/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +191,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const res = await fetch('http://localhost:5000/api/usage/status', {
+      const res = await fetch(`${API_URL}/api/usage/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -211,7 +213,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const res = await fetch('http://localhost:5000/api/usage/track', {
+      const res = await fetch(`${API_URL}/api/usage/track`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -841,7 +843,7 @@ export default function Dashboard() {
           const parsedUser = JSON.parse(userData);
           const activeMessages = messages.filter(m => m.type !== 'system');
           
-          await fetch('http://localhost:5000/api/sessions/save', {
+          await fetch(`${API_URL}/api/sessions/save`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -882,7 +884,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem('token');
       // Hit the silent backend capture API instead of browser screen share
-      const captureRes = await fetch('http://localhost:5000/api/ai/capture-screen', {
+      const captureRes = await fetch(`${API_URL}/api/ai/capture-screen`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -899,7 +901,7 @@ export default function Dashboard() {
 
       if (dataURL) {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
+        const res = await fetch(`${API_URL}/api/ai/solve-screenshot`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1339,7 +1341,7 @@ export default function Dashboard() {
                       setSolverAnswer('');
                       try {
                         const token = localStorage.getItem('token');
-                        const res = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
+                        const res = await fetch(`${API_URL}/api/ai/solve-screenshot`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',

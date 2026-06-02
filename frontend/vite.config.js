@@ -11,7 +11,7 @@ export default defineConfig({
     proxy: {
       // SSE streaming route — must NOT buffer the response
       '/api/ai/chat': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         // Disable response buffering so SSE chunks pass through immediately
@@ -27,7 +27,7 @@ export default defineConfig({
       },
       // All other API routes (auth, sessions, usage, etc.)
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
