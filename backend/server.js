@@ -20,7 +20,12 @@ app.use(helmet());
 // CORS - allow Electron (file://) and optionally your web domain
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'https://ghosthireweb.netlify.app'
+    ];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -28,6 +33,7 @@ app.use(cors({
     if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    console.warn(`CORS blocked origin: ${origin}`);
     return callback(new Error('CORS not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
