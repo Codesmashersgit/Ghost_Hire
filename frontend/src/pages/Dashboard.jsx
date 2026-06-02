@@ -695,7 +695,7 @@ export default function Dashboard() {
       console.error('Missing auth token for suggestions');
       return;
     }
-    const suggRes = await fetch('/api/ai/suggestions', {
+    const suggRes = await fetch(`${API_BASE_URL}/api/ai/suggestions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -744,7 +744,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
