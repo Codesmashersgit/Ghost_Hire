@@ -3,13 +3,17 @@
   publish = "frontend/dist"
   base = "frontend"
 
+# Redirect all non-matching URLs to index.html for React Router
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Environment variables - Set these in Netlify UI
-[build.environment]
-  # These should be set in Netlify dashboard, not here
-  # VITE_API_URL = your production API
+# Don't redirect actual files
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = false
+
 
