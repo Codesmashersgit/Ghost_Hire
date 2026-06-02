@@ -446,9 +446,10 @@ export default function Dashboard() {
       const langCode = langMap[selectedLang] || 'en';
 
       // Connect securely via backend proxy to hide Deepgram API Key
-      // Determine WebSocket protocol based on page protocol (ws:// or wss://)
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socketUrl = `${protocol}//${window.location.host}/api/speech/stream?language=${langCode}`;
+      // Use backend URL from config, not frontend URL
+      const backendUrl = new URL(API_BASE_URL);
+      const protocol = backendUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socketUrl = `${protocol}//${backendUrl.host}/api/speech/stream?language=${langCode}`;
       
       const socket = new WebSocket(socketUrl);
       socketRef.current = socket;
