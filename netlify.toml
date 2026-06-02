@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "frontend/dist"
+  base = "frontend"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables - Set these in Netlify UI
+[build.environment]
+  # These should be set in Netlify dashboard, not here
+  # VITE_API_URL = your production API
+
