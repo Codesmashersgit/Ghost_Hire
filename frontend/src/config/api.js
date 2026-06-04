@@ -1,10 +1,9 @@
 // API Configuration
 // Single source of truth for all API calls
 
-export const API_BASE_URL = 'https://ghost-hire-uyn2.onrender.com';
-
-// For development, uncomment this:
-// export const API_BASE_URL = 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:5000' 
+  : 'https://ghost-hire-uyn2.onrender.com';
 
 export const API_ENDPOINTS = {
   // Admin

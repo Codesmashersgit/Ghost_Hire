@@ -9,13 +9,15 @@
     "electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
     "app": "concurrently \"npm run dev\" \"npm run electron\"",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron-build": "npm run build && cross-env NODE_ENV=production electron-builder"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.10",
     "@tailwindcss/vite": "^4.3.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "cookie": "^0.7.2",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
     "react-hot-toast": "^2.6.0",
@@ -26,8 +28,50 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^42.1.0",
+    "electron-builder": "^25.1.8",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
     "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "com.ghosthire.app",
+    "productName": "GhostHire",
+    "files": [
+      "dist/**/*",
+      "electron/main.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public",
+      "output": "release"
+    },
+    "win": {
+      "certificateFile": null,
+      "certificatePassword": null,
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "sign": "./customSign.js",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

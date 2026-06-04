@@ -6,6 +6,7 @@ import Signin from './pages/Signin'
 import AdminDashboard from './pages/AdminDashboard'
 
 function App() {
+  console.log('App component rendering');
   return (
     <Router>
       <Routes>

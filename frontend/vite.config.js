@@ -7,6 +7,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    minify: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
   server: {
     proxy: {
       // SSE streaming route — must NOT buffer the response

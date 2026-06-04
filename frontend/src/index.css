@@ -1,56 +1,73 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap');
 @import "tailwindcss";
 
-/* ===== Premium Design System ===== */
 @theme {
-  /* Brand Colors — Signature Blue */
-  --color-primary: #2563EB; /* Blue 600 */
-  --color-primary-light: #60A5FA; /* Blue 400 */
-  --color-primary-dark: #1E40AF; /* Blue 800 */
-  --color-accent: #3B82F6; /* Blue 500 */
-  --color-accent-light: #93C5FD; /* Blue 300 */
+  /* Brand Colors - Electric Blue & Neon Purple */
+  --color-primary:        #3B82F6;
+  --color-primary-light:  #60A5FA;
+  --color-primary-dark:   #1D4ED8;
+  --color-accent:         #8B5CF6;
+  --color-accent-light:   #A78BFA;
+  --color-success:        #10B981;
+  --color-warning:        #F59E0B;
+  --color-danger:         #EF4444;
+  --color-danger-light:   #FCA5A5;
 
-  /* Status Colors */
+  /* Background Colors - Deep Dark Theme */
+  --color-bg-primary:     #050505;
+  --color-bg-secondary:   #0A0A0A;
+  --color-bg-tertiary:    #111111;
+
+  /* Text Colors - High contrast for dark mode */
+  --color-text-primary:   #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary:  #94A3B8;
+  --color-text-muted:     #64748B;
+
+  /* Border Colors */
+  --color-border:         rgba(255, 255, 255, 0.08);
+  --color-border-hover:   rgba(96, 165, 250, 0.35);
+
+  /* Font Families */
+  --font-sans: 'Roboto', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+:root {
+  --color-primary: #3B82F6;
+  --color-primary-light: #60A5FA;
+  --color-primary-dark: #1D4ED8;
+  --color-accent: #8B5CF6;
+  --color-accent-light: #A78BFA;
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
   --color-danger-light: #FCA5A5;
-
-  /* Background System — Clean White */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-bg-tertiary: #F1F5F9;
-
-  /* Text Hierarchy */
-  --color-text-primary: #0F172A; /* Slate 900 */
-  --color-text-secondary: #334155; /* Slate 700 */
-  --color-text-tertiary: #64748B; /* Slate 500 */
-  --color-text-muted: #94A3B8; /* Slate 400 */
-
-  /* Borders */
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-hover: rgba(37, 99, 235, 0.35);
-
-  /* Typography */
-  --font-family-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --color-bg-primary: #050505;
+  --color-bg-secondary: #0A0A0A;
+  --color-bg-tertiary: #111111;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(96, 165, 250, 0.35);
+  --font-family-sans: 'Roboto', system-ui, -apple-system, sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-/* ===== Base Resets ===== */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+/* Tailwind provides its own reset via Preflight */
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 80px;
   background-color: var(--color-bg-primary);
+  color-scheme: dark;
 }
 
 body {
+  font-family: var(--font-sans);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: var(--font-family-sans);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -58,17 +75,17 @@ body {
   min-height: 100vh;
 }
 
-/* ===== Animated Aurora Background ===== */
+/* ===== Animated Aurora Background (Dark Mode) ===== */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(37, 99, 235, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 85%,  rgba(59, 130, 246, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 60% 30%,  rgba(37, 99, 235, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 10% 70%,  rgba(96, 165, 250, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(59, 130, 246, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 85%,  rgba(139, 92, 246, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 60% 30%,  rgba(59, 130, 246, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 70%,  rgba(167, 139, 250, 0.05) 0%, transparent 50%),
     var(--color-bg-primary);
   animation: aurora-drift 18s ease-in-out infinite alternate;
   pointer-events: none;
@@ -80,8 +97,8 @@ body::after {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
   background-size: 60px 60px;
   mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 80%);
   pointer-events: none;
@@ -90,34 +107,34 @@ body::after {
 @keyframes aurora-drift {
   0% {
     background:
-      radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(37, 99, 235, 0.15) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 85%,  rgba(59, 130, 246, 0.12) 0%, transparent 55%),
-      radial-gradient(ellipse 70% 60% at 60% 30%,  rgba(37, 99, 235, 0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 10% 70%,  rgba(96, 165, 250, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(59, 130, 246, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 85%,  rgba(139, 92, 246, 0.06) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 60% at 60% 30%,  rgba(59, 130, 246, 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 10% 70%,  rgba(167, 139, 250, 0.05) 0%, transparent 50%),
       var(--color-bg-primary);
   }
   33% {
     background:
-      radial-gradient(ellipse 90% 70% at 70% 5%,   rgba(37, 99, 235, 0.12) 0%, transparent 60%),
-      radial-gradient(ellipse 70% 60% at 15% 90%,  rgba(59, 130, 246, 0.15) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 50% at 85% 50%,  rgba(37, 99, 235, 0.10) 0%, transparent 60%),
-      radial-gradient(ellipse 45% 50% at 40% 20%,  rgba(96, 165, 250, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 90% 70% at 70% 5%,   rgba(59, 130, 246, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 60% at 15% 90%,  rgba(139, 92, 246, 0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 85% 50%,  rgba(59, 130, 246, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 50% at 40% 20%,  rgba(167, 139, 250, 0.06) 0%, transparent 50%),
       var(--color-bg-primary);
   }
   66% {
     background:
-      radial-gradient(ellipse 75% 55% at 50% 20%,  rgba(37, 99, 235, 0.14) 0%, transparent 60%),
-      radial-gradient(ellipse 65% 55% at 90% 50%,  rgba(59, 130, 246, 0.11) 0%, transparent 55%),
-      radial-gradient(ellipse 80% 65% at 10% 40%,  rgba(37, 99, 235, 0.12) 0%, transparent 60%),
-      radial-gradient(ellipse 55% 45% at 70% 80%,  rgba(96, 165, 250, 0.11) 0%, transparent 50%),
+      radial-gradient(ellipse 75% 55% at 50% 20%,  rgba(59, 130, 246, 0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 65% 55% at 90% 50%,  rgba(139, 92, 246, 0.05) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 65% at 10% 40%,  rgba(59, 130, 246, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 70% 80%,  rgba(167, 139, 250, 0.05) 0%, transparent 50%),
       var(--color-bg-primary);
   }
   100% {
     background:
-      radial-gradient(ellipse 85% 65% at 30% 80%,  rgba(37, 99, 235, 0.11) 0%, transparent 60%),
-      radial-gradient(ellipse 55% 45% at 75% 20%,  rgba(59, 130, 246, 0.14) 0%, transparent 55%),
-      radial-gradient(ellipse 65% 55% at 40% 60%,  rgba(37, 99, 235, 0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 85% 85%,  rgba(96, 165, 250, 0.13) 0%, transparent 50%),
+      radial-gradient(ellipse 85% 65% at 30% 80%,  rgba(59, 130, 246, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 75% 20%,  rgba(139, 92, 246, 0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 65% 55% at 40% 60%,  rgba(59, 130, 246, 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 85%,  rgba(167, 139, 250, 0.06) 0%, transparent 50%),
       var(--color-bg-primary);
   }
 }
@@ -126,7 +143,7 @@ body::after {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(96, 165, 250, 0.6); }
@@ -141,32 +158,33 @@ input[type="submit"], input[type="button"], label[for] {
 .cyber-grid {
   background-size: 60px 60px;
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   mask-image: radial-gradient(circle at center, black 30%, transparent 90%);
 }
 
-/* ===== Glassmorphism ===== */
+/* ===== Glassmorphism (Dark Mode) ===== */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(15, 15, 15, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
 .glass-panel-hover {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .glass-panel-hover:hover {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(37, 99, 235, 0.35);
-  box-shadow: 0 8px 40px rgba(37, 99, 235, 0.1), 0 0 0 1px rgba(37, 99, 235, 0.05);
+  background: rgba(25, 25, 25, 0.7);
+  border-color: rgba(96, 165, 250, 0.3);
+  box-shadow: 0 8px 40px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.05);
   transform: translateY(-3px);
 }
 
 /* ===== Gradient Text ===== */
 .gradient-text {
-  background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -174,11 +192,11 @@ input[type="submit"], input[type="button"], label[for] {
 
 /* ===== Glow Effects ===== */
 .neon-glow-primary {
-  box-shadow: 0 0 30px rgba(37, 99, 235, 0.30), 0 0 60px rgba(37, 99, 235, 0.10);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.30), 0 0 60px rgba(59, 130, 246, 0.10);
 }
 
 .neon-glow-accent {
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.30), 0 0 60px rgba(59, 130, 246, 0.10);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.30), 0 0 60px rgba(139, 92, 246, 0.10);
 }
 
 /* ===== Sheen Animation (for buttons) ===== */
@@ -250,6 +268,6 @@ pre, code { font-family: var(--font-family-mono); }
 
 /* ===== Selection Styling ===== */
 ::selection {
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(59, 130, 246, 0.2);
   color: #0F172A;
 }

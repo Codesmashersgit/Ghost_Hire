@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, User, Mail, Lock } from 'lucide-react';
+import { Sparkles, ArrowRight, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 export default function Signup() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
@@ -23,11 +27,13 @@ export default function Signup() {
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard');
       } else {
-        alert(data.message || 'Signup failed');
+        setError(data.message || 'Signup failed. Please try again.');
+        setLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert('An error occurred. Make sure backend is running.');
+      setError('Connection error. Make sure the backend is running.');
+      setLoading(false);
     }
   };
 
@@ -56,6 +62,14 @@ export default function Signup() {
           <p className="text-text-secondary text-xs font-semibold">Join GhostHire and unlock real-time interview suggestions.</p>
         </div>
 
+        {/* Inline Error Message */}
+        {error && (
+          <div className="flex items-start gap-2.5 p-3.5 mb-5 bg-danger/10 border border-danger/25 rounded-xl text-danger text-xs font-semibold animate-fadeIn">
+            <AlertCircle size={15} className="shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-[0.62rem] font-bold text-text-tertiary uppercase tracking-[2px] mb-2">Candidate Name</label>
@@ -64,10 +78,11 @@ export default function Signup() {
               <input 
                 type="text" 
                 required
+                disabled={loading}
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="John Doe"
-                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -79,10 +94,11 @@ export default function Signup() {
               <input 
                 type="email" 
                 required
+                disabled={loading}
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="john@example.com"
-                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -94,19 +110,33 @@ export default function Signup() {
               <input 
                 type="password" 
                 required
+                disabled={loading}
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 placeholder="••••••••"
-                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none"
+                className="w-full bg-black/[0.03] border border-black/[0.06] rounded-xl py-3.5 pl-11 pr-4 text-xs text-text-primary placeholder:text-text-muted focus:border-primary-light/50 focus:bg-black/[0.05] transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           <button 
             type="submit" 
-            className="btn-sheen w-full py-3.5 mt-6 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+            disabled={loading}
+            className="btn-sheen w-full py-3.5 mt-6 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl hover:shadow-[0_4px_25px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 disabled:opacity-80 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
-            Create Candidate Profile <ArrowRight size={14} />
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Creating Account...
+              </>
+            ) : (
+              <>
+                Create Candidate Profile <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </form>
 

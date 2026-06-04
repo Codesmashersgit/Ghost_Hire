@@ -17,12 +17,14 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      enableRemoteModule: true,
+      sandbox: false
     }
   });
 
-  // VERY IMPORTANT: Makes the window invisible to screen capture (OBS, Zoom, MS Teams, etc.)
-  mainWindow.setContentProtection(true);
+  // Note: Removed setContentProtection(true) as it interferes with microphone access
+  // If needed, can be re-enabled for specific scenarios only
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -44,17 +46,24 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
+  // Enable DevTools for debugging
+  mainWindow.webContents.openDevTools();
+
   // Automatically approve permission requests (specifically microphone/audio access)
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    const allowedPermissions = ['media', 'audioCapture', 'display-capture', 'videoCapture', 'desktopVideoCapture'];
+    console.log('Permission requested:', permission);
+    const allowedPermissions = ['media', 'audioCapture', 'display-capture', 'videoCapture', 'desktopVideoCapture', 'microphone'];
     if (allowedPermissions.includes(permission)) {
+      console.log('✅ Approving permission:', permission);
       callback(true); // Approve microphone and screen access
     } else {
+      console.log('⚠️ Approving other permission:', permission);
       callback(true); // Approve other permissions by default for this app
     }
   });
   
   session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    console.log('Permission check:', permission);
     return true; // Auto-allow check for all permissions
   });
 

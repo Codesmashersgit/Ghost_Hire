@@ -14,10 +14,10 @@ const faqs = [
 
 function FAQItem({ faq, isOpen, toggle }) {
   return (
-    <div className="bg-bg-tertiary/20 border border-black/[0.04] rounded-xl overflow-hidden hover:border-primary-light/30 transition-all duration-300">
+    <div className="bg-bg-tertiary/20 border border-white/[0.04] rounded-xl overflow-hidden hover:border-primary-light/30 transition-all duration-300">
       <button 
         onClick={toggle} 
-        className="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-black/[0.02]"
+        className="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-white/[0.02]"
       >
         <span className="text-xs sm:text-sm font-bold text-text-primary pr-4">{faq.q}</span>
         <ChevronDown 
@@ -34,7 +34,7 @@ function FAQItem({ faq, isOpen, toggle }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="px-5 pb-5 pt-1 border-t border-black/[0.03]">
+            <div className="px-5 pb-5 pt-1 border-t border-white/[0.03]">
               <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
                 {faq.a}
               </p>

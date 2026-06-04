@@ -41,7 +41,7 @@ export default function Privacy() {
             {/* Visual Glowing Shield Display */}
             <div className="relative w-44 h-44 mx-auto lg:mx-0">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/10 rounded-full blur-[35px] animate-pulse" />
-              <div className="relative w-full h-full bg-bg-tertiary/40 border border-black/[0.06] rounded-full flex items-center justify-center shadow-[0_15px_30px_rgba(0,0,0,0.5)]">
+              <div className="relative w-full h-full bg-bg-tertiary/40 border border-white/[0.06] rounded-full flex items-center justify-center shadow-[0_15px_30px_rgba(0,0,0,0.5)]">
                 <Shield size={56} className="text-primary-light animate-pulse-glow" style={{ color: 'var(--color-primary-light)' }} />
               </div>
             </div>
@@ -56,7 +56,7 @@ export default function Privacy() {
                 whileInView={{ opacity: 1, y: 0 }} 
                 viewport={{ once: true }} 
                 transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="p-5 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl hover:border-primary-light/35 hover:bg-bg-tertiary/40 transition-all duration-300 shadow-sm"
+                className="p-5 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl hover:border-primary-light/35 hover:bg-bg-tertiary/40 transition-all duration-300 shadow-sm"
               >
                 <div className="text-primary-light mb-3 bg-primary/10 w-9 h-9 rounded-lg flex items-center justify-center border border-primary/20">{f.icon}</div>
                 <h3 className="text-xs sm:text-sm font-bold mb-1 text-text-primary">{f.title}</h3>

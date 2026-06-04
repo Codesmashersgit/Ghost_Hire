@@ -39,7 +39,7 @@ export default function HowItWorks() {
           {steps.map((s, i) => (
             <motion.div 
               key={i} 
-              className="relative p-6 bg-bg-tertiary/20 border border-black/[0.04] rounded-2xl text-center hover:bg-bg-tertiary/40 transition-all duration-300"
+              className="relative p-6 bg-bg-tertiary/20 border border-white/[0.04] rounded-2xl text-center hover:bg-bg-tertiary/40 transition-all duration-300"
               initial={{ opacity: 0, y: 30 }} 
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
