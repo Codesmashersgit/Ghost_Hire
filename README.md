@@ -262,17 +262,11 @@ Real-time audio streaming through Deepgram for live speech-to-text transcription
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
----
 
-## 📄 License
-
-ISC License — see [LICENSE](LICENSE) for details.
-
----
 
 <div align="center">
 
-Made with ❤️ by the **GhostHire Team**
+Made with ❤️ by **Sudhanshu Raj**
 
 ⭐ **Star this repo if it helped you ace your interviews!** ⭐
 
