@@ -11,8 +11,8 @@
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![License](https://img.shields.io/badge/License-ISC-blue?style=flat-square)](LICENSE)
 
-**GhostHire is an AI-powered interview assistant that supports you during coding interviews in real time. With live speech recognition, AI-generated answers, screenshot problem solving, and much more — all within a sleek desktop app.**
-
+**GhostHire is an AI-powered interview assistant that supports you during coding interviews in real time.**  
+Live speech recognition, AI-generated answers, screenshot problem solving, and much more — all within a sleek desktop app.
 
 [🚀 Getting Started](#-getting-started) · [✨ Features](#-features) · [🏗️ Architecture](#️-architecture) · [🔑 API Keys](#-required-api-keys) · [📦 Build & Deploy](#-build--deploy)
 
@@ -27,7 +27,7 @@
 | 🎤 **Live Speech Recognition** | Real-time transcription using **Deepgram Nova-2** via WebSocket proxy |
 | 🤖 **AI Answer Generation** | Instant, concise answers via **Azure GitHub AI** (GPT-4o, Llama, Phi-3) with auto-fallback |
 | 📸 **Screenshot Solver** | Capture your screen and solve coding questions / MCQs with **Gemini 2.5 Flash Vision** |
-| 💡 **Smart Suggestions** | AI-generated follow-up question suggestions based on current topic |
+| 💡 **Smart Suggestions** | AI-generated follow-up question suggestions based on the current topic |
 | 🔐 **Auth System** | JWT-based authentication with bcrypt password hashing |
 | 📊 **Admin Dashboard** | Monitor users, usage, sessions, and invoices |
 | 📋 **Session History** | Save and review all your interview sessions |
@@ -66,7 +66,7 @@ AI_assistant/
     │   │   ├── Signup.jsx       # Registration page
     │   │   └── AdminDashboard.jsx # Admin panel
     │   ├── components/          # Reusable UI components
-    │   ├── api/                 # Axios API call helpers
+    │   ├── api/                 # API call helpers
     │   └── config/              # App configuration
     └── vite.config.js           # Vite + Electron build config
 ```
@@ -75,7 +75,7 @@ AI_assistant/
 
 ## 🔑 Required API Keys
 
-Aapko neeche diye gaye API keys ki zaroorat hogi. Inhe respective `.env` files mein daalo:
+You will need the following API keys. Add them to the respective `.env` files as described in the setup steps below.
 
 | Service | Key | Use |
 |---|---|---|
@@ -92,16 +92,15 @@ Aapko neeche diye gaye API keys ki zaroorat hogi. Inhe respective `.env` files m
 
 - **Node.js** v18+
 - **npm** v9+
-- MongoDB Atlas account (ya local MongoDB)
+- A MongoDB Atlas account (or a local MongoDB instance)
 
 ---
 
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/codesmashersgit/GhostHire.git
-cd frontend
-npm run dev
+git clone https://github.com/Codesmashersgit/Ghost_Hire.git
+cd AI_assistant
 ```
 
 ---
@@ -113,7 +112,7 @@ cd backend
 npm install
 ```
 
-`backend/.env` file create:
+Create a `backend/.env` file with the following variables:
 
 ```env
 PORT=5000
@@ -129,10 +128,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5000
 ```
 
-Backend start karo:
+Start the backend server:
 
 ```bash
-# Development mode (auto-restart on changes)
+# Development mode (auto-restart on file changes)
 npm run dev
 
 # Production mode
@@ -148,7 +147,7 @@ cd frontend
 npm install
 ```
 
-`frontend/.env` file banao:
+Create a `frontend/.env` file:
 
 ```env
 VITE_API_URL=http://localhost:5000
@@ -158,18 +157,18 @@ VITE_API_URL=http://localhost:5000
 
 ### 4️⃣ Run the App
 
-#### 🌐 Web Browser mein (Development)
+#### 🌐 In Web Browser (Development)
 ```bash
 cd frontend
 npm run dev
 # Open: http://localhost:5173
 ```
 
-#### 🖥️ Electron Desktop App
+#### 🖥️ As Electron Desktop App
 ```bash
 cd frontend
 npm run app
-# Yeh browser dev server + Electron dono ek saath start karega
+# This starts both the Vite dev server and the Electron window simultaneously
 ```
 
 ---
@@ -183,18 +182,20 @@ cd frontend
 npm run electron-build
 ```
 
-Build output `frontend/release/` folder mein milega:
+Build output will be placed in the `frontend/release/` folder:
 - `GhostHire Setup x64.exe` — NSIS Installer
 - `GhostHire x64.exe` — Portable executable
 
+### Backend Deployment
 
+The backend can be deployed to any Node.js hosting platform (Railway, Render, VPS, etc.):
 
 ```bash
 cd backend
 npm start
 ```
 
-> **Note:** Production mein `ALLOWED_ORIGINS` ko apne frontend domain se update karo.
+> **Note:** In production, update `ALLOWED_ORIGINS` in your `.env` file to match your frontend's domain.
 
 ---
 
@@ -203,38 +204,38 @@ npm start
 ### Auth Routes (`/api/auth`)
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/signup` | Naya user register karo |
-| `POST` | `/api/auth/login` | Login aur JWT token pao |
+| `POST` | `/api/auth/signup` | Register a new user |
+| `POST` | `/api/auth/login` | Login and receive a JWT token |
 
 ### AI Routes (`/api/ai`) — *Auth Required*
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/ai/chat` | Streaming AI answer generate karo |
-| `POST` | `/api/ai/suggestions` | Follow-up question suggestions |
-| `GET` | `/api/ai/capture-screen` | Desktop screenshot capture karo |
-| `POST` | `/api/ai/solve-screenshot` | Screenshot se question solve karo |
+| `POST` | `/api/ai/chat` | Generate a streaming AI answer |
+| `POST` | `/api/ai/suggestions` | Get follow-up question suggestions |
+| `GET` | `/api/ai/capture-screen` | Capture the desktop screenshot |
+| `POST` | `/api/ai/solve-screenshot` | Solve a question from a screenshot |
 
 ### WebSocket (`ws://localhost:5000/api/speech/stream`)
-Real-time audio streaming Deepgram ke through live transcription ke liye.
+Real-time audio streaming through Deepgram for live speech-to-text transcription.
 
 ### Other Routes
 | Prefix | Description |
 |---|---|
 | `/api/sessions` | Interview session CRUD |
 | `/api/invoices` | Invoice management |
-| `/api/usage` | API usage stats |
+| `/api/usage` | API usage statistics |
 | `/api/admin` | Admin-only operations |
 
 ---
 
 ## 🛡️ Security Features
 
-- **Helmet.js** — HTTP security headers
-- **CORS** — Strict origin whitelisting (Electron `file://` support ke saath)
-- **Rate Limiting** — Auth routes: 20 req/15min, API routes: 100 req/min
-- **JWT Auth** — Stateless authentication
-- **bcryptjs** — Password hashing
-- **Payload Limit** — 50MB max request size
+- **Helmet.js** — Secure HTTP response headers
+- **CORS** — Strict origin whitelisting (with support for Electron's `file://` origin)
+- **Rate Limiting** — Auth routes: 20 req/15 min · API routes: 100 req/min
+- **JWT Auth** — Stateless, token-based authentication
+- **bcryptjs** — Secure password hashing
+- **Payload Limit** — 50 MB max request size
 
 ---
 
@@ -246,19 +247,19 @@ Real-time audio streaming Deepgram ke through live transcription ke liye.
 | `gpt-4o` | Azure/GitHub | Fallback |
 | `meta-llama-3.1-70b-instruct` | Azure/GitHub | Fallback |
 | `Phi-3-medium-128k-instruct` | Azure/GitHub | Fallback |
-| `gemini-2.5-flash` | Google | Screenshot/Vision solving |
+| `gemini-2.5-flash` | Google | Screenshot / Vision solving |
 | `nova-2` | Deepgram | Speech-to-text |
 
-> Auto-fallback system hai — agar ek model rate-limited ho jaye, toh automatically next model try karta hai.
+> An automatic fallback system is in place — if one model hits its rate limit, the next available model is tried automatically.
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repo
+1. Fork the repository
 2. Create your feature branch: `git checkout -b feature/amazing-feature`
 3. Commit your changes: `git commit -m 'feat: add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
+4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
 ---
