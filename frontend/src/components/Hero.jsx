@@ -2,13 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Play, Users, Zap, Shield, Star, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { getCookie } from '../utils/storage'
 
 export default function Hero() {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('token'))
+    setIsLoggedIn(!!getCookie('token'))
   }, [])
 
 

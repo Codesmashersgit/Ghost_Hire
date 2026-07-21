@@ -2,10 +2,10 @@ import { motion } from 'framer-motion'
 import { UserPlus, Upload, Play, Trophy } from 'lucide-react'
 
 const steps = [
-  { icon: <UserPlus size={24} />, step: '01', title: 'Create Account', desc: 'Register in seconds. Start with a risk-free trial immediately without entering credit card details.' },
-  { icon: <Upload size={24} />, step: '02', title: 'Context Syncing', desc: 'Sync your resume, target job roles, and specific notes so every AI response matches your voice.' },
-  { icon: <Play size={24} />, step: '03', title: 'Launch Copilot', desc: 'Fire up your dashboard before starting your live video or voice interview call on Zoom or Meet.' },
-  { icon: <Trophy size={24} />, step: '04', title: 'Ace the Session', desc: 'Receive instant structural answers and code. Review your performance data summary afterwards.' },
+  { icon: <UserPlus size={24} />, step: '01', title: 'Select AI Engine', desc: 'Configure your preferred GitHub/Azure AI model (e.g. GPT-4o-mini) and set your custom context or guidelines.' },
+  { icon: <Play size={24} />, step: '02', title: 'WebSocket Audio', desc: 'Activate the microphone. Your system audio is streamed directly to Deepgram via high-speed WebSockets.' },
+  { icon: <Upload size={24} />, step: '03', title: 'Real-Time VAD', desc: 'Advanced Voice Activity Detection (300ms endpointing) immediately captures the final question without manual triggers.' },
+  { icon: <Trophy size={24} />, step: '04', title: 'Instant Inference', desc: 'The AI model processes the transcript with an optimized token payload, streaming concise answers back to your dashboard in milliseconds.' },
 ]
 
 export default function HowItWorks() {

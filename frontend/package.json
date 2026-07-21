@@ -51,7 +51,6 @@
       "signingHashAlgorithms": [
         "sha256"
       ],
-      "sign": "./customSign.js",
       "target": [
         {
           "target": "nsis",

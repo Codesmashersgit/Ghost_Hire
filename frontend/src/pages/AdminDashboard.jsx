@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sparkles, Users, Clock, ShieldAlert, CreditCard, ArrowLeft, Trash2, Shield, RotateCcw, Search, BarChart3, Receipt, FileText } from 'lucide-react'
-import { API_BASE_URL, fetchWithAuth } from '../config/api'
+import { API_BASE_URL } from '../config/api'
+import { fetchWithAuth } from '../utils/api'
+import { getCookie } from '../utils/storage'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -22,8 +24,8 @@ export default function AdminDashboard() {
 
   // Verify Admin role and fetch initial data
   const loadAdminData = async () => {
-    const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
+    const token = getCookie('token')
+    const userData = getCookie('user')
     
     if (!token || !userData) {
       navigate('/signin')
@@ -40,30 +42,22 @@ export default function AdminDashboard() {
       setLoading(true)
       
       // Fetch stats
-      const statsRes = await fetch(`${API_BASE_URL}/api/admin/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const statsRes = await fetchWithAuth(`${API_BASE_URL}/api/admin/stats`)
       const statsData = await statsRes.json()
       if (statsData.success) setStats(statsData.stats)
 
       // Fetch users
-      const usersRes = await fetch(`${API_BASE_URL}/api/admin/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/admin/users`)
       const usersData = await usersRes.json()
       if (usersData.success) setUsers(usersData.data)
 
       // Fetch invoices
-      const invoicesRes = await fetch(`${API_BASE_URL}/api/admin/invoices`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const invoicesRes = await fetchWithAuth(`${API_BASE_URL}/api/admin/invoices`)
       const invoicesData = await invoicesRes.json()
       if (invoicesData.success) setInvoices(invoicesData.data)
 
       // Fetch sessions
-      const sessionsRes = await fetch(`${API_BASE_URL}/api/admin/sessions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const sessionsRes = await fetchWithAuth(`${API_BASE_URL}/api/admin/sessions`)
       const sessionsData = await sessionsRes.json()
       if (sessionsData.success) setSessions(sessionsData.data)
 
@@ -81,13 +75,11 @@ export default function AdminDashboard() {
 
   // Admin Actions
   const handleToggleAdmin = async (userId, currentName) => {
-    const token = localStorage.getItem('token')
     if (!window.confirm(`Are you sure you want to change the Admin role status for ${currentName}?`)) return
     
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/toggle-admin`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/users/${userId}/toggle-admin`, {
+        method: 'POST'
       })
       const data = await res.json()
       if (data.success) {
@@ -102,13 +94,11 @@ export default function AdminDashboard() {
   }
 
   const handleResetUsage = async (userId, currentName) => {
-    const token = localStorage.getItem('token')
     if (!window.confirm(`Are you sure you want to reset the daily 10-minute timer for ${currentName}?`)) return
     
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/reset-usage`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/users/${userId}/reset-usage`, {
+        method: 'POST'
       })
       const data = await res.json()
       if (data.success) {
@@ -121,13 +111,11 @@ export default function AdminDashboard() {
   }
 
   const handleDeleteUser = async (userId, currentName) => {
-    const token = localStorage.getItem('token')
     if (!window.confirm(`⚠️ WARNING: Deleting user "${currentName}" will permanently remove their account, sessions list, and invoices. This action CANNOT be undone!\n\nDo you want to proceed?`)) return
     
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE'
       })
       const data = await res.json()
       if (data.success) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { setCookie } from '../utils/storage';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -23,8 +24,8 @@ export default function Signup() {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        setCookie('token', data.token);
+        setCookie('user', JSON.stringify(data.user));
         navigate('/dashboard');
       } else {
         setError(data.message || 'Signup failed. Please try again.');

@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Sparkles, ArrowRight, MessageCircle, Briefcase, Camera, Video } from 'lucide-react'
+import { getCookie } from '../utils/storage'
 
 export default function Footer() {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('token'))
+    setIsLoggedIn(!!getCookie('token'))
   }, [])
 
   return (

@@ -38,6 +38,7 @@ const plans = [
     gradient: 'from-warning/10 to-warning/5',
   },
 ]
+import { getCookie } from '../utils/storage'
 
 export default function Pricing() {
   const navigate = useNavigate()
@@ -45,7 +46,7 @@ export default function Pricing() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('token'))
+    setIsLoggedIn(!!getCookie('token'))
   }, [])
 
   const handleCtaClick = () => {

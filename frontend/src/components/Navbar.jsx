@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Menu, X, Sparkles, LogOut, ArrowRight } from 'lucide-react'
+import { getCookie, removeCookie } from '../utils/storage'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -9,15 +10,15 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('token'))
+    setIsLoggedIn(!!getCookie('token'))
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    removeCookie('token')
+    removeCookie('user')
     setIsLoggedIn(false)
     navigate('/')
   }

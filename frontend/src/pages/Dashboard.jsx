@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sparkles, Play, Upload, Settings, LogOut, Clock, Zap, FileText, Globe, Mic, MicOff, Square, MessageSquare, ChevronDown, CreditCard, HelpCircle, Plus, Key, ArrowRight, Sliders, X, Activity, RefreshCw, Shield, Camera } from 'lucide-react'
 import { API_BASE_URL } from '../config/api'
+import { fetchWithAuth } from '../utils/api'
+import { getCookie, setCookie, removeCookie } from '../utils/storage'
 
 const FALLBACK_MODELS = [
   "gpt-4o-mini",
@@ -48,27 +50,27 @@ export default function Dashboard() {
   const sendTimeoutRef = useRef(null)
   
   const [transcriptionEngine, setTranscriptionEngine] = useState(() => {
-    return localStorage.getItem('ghosthire_transcription_engine') || 'AI_ENGINE';
+    return getCookie('ghosthire_transcription_engine') || 'AI_ENGINE';
   })
   const [autoSend, setAutoSend] = useState(() => {
-    return localStorage.getItem('ghosthire_autosend') === 'true';
+    return getCookie('ghosthire_autosend') === 'true';
   })
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
   
   const [githubModel, setGithubModel] = useState(() => {
-    return localStorage.getItem('ghosthire_github_model') || 'gpt-4o-mini';
+    return getCookie('ghosthire_github_model') || 'gpt-4o-mini';
   })
   
   const [earbudsMode, setEarbudsMode] = useState(() => {
-    return localStorage.getItem('ghosthire_earbuds') === 'true';
+    return getCookie('ghosthire_earbuds') === 'true';
   })
 
   // Ref so async recording functions always read the latest earbudsMode value
   const earbudsModeRef = useRef(earbudsMode);
   useEffect(() => {
     earbudsModeRef.current = earbudsMode;
-    localStorage.setItem('ghosthire_earbuds', earbudsMode);
+    setCookie('ghosthire_earbuds', earbudsMode);
   }, [earbudsMode])
   
   const recognitionRef = useRef(null)
@@ -105,15 +107,15 @@ export default function Dashboard() {
   }, [transcriptionEngine])
 
   useEffect(() => {
-    localStorage.setItem('ghosthire_transcription_engine', transcriptionEngine);
+    setCookie('ghosthire_transcription_engine', transcriptionEngine);
   }, [transcriptionEngine])
 
   useEffect(() => {
-    localStorage.setItem('ghosthire_autosend', autoSend);
+    setCookie('ghosthire_autosend', autoSend);
   }, [autoSend])
 
   useEffect(() => {
-    localStorage.setItem('ghosthire_github_model', githubModel);
+    setCookie('ghosthire_github_model', githubModel);
   }, [githubModel])
 
   const textareaRef = useRef(null);
@@ -130,7 +132,7 @@ export default function Dashboard() {
     if (!uid) return;
     setLoadingSessions(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/sessions?userId=${uid}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/sessions?userId=${uid}`);
       const data = await res.json();
       if (data.success) {
         setSessionsList(data.data);
@@ -146,7 +148,7 @@ export default function Dashboard() {
     if (!uid) return;
     setLoadingInvoices(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/invoices?userId=${uid}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/invoices?userId=${uid}`);
       const data = await res.json();
       if (data.success) {
         setInvoicesList(data.data);
@@ -159,12 +161,12 @@ export default function Dashboard() {
   };
 
   const handleSimulatePayment = async () => {
-    const userData = localStorage.getItem('user');
+    const userData = getCookie('user');
     if (!userData) return;
     try {
       const parsed = JSON.parse(userData);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/invoices/pay`, {
+      const token = getCookie('token');
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/invoices/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,9 +190,9 @@ export default function Dashboard() {
   // Fetch usage status from backend
   const fetchUsageStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getCookie('token');
       if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/api/usage/status`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/usage/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -210,9 +212,9 @@ export default function Dashboard() {
   // Track usage: send seconds to backend
   const trackUsage = async (seconds) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getCookie('token');
       if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/api/usage/track`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/usage/track`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,8 +240,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const token = getCookie('token');
+    const userData = getCookie('user');
     
     if (!token || !userData) {
       navigate('/signin');
@@ -496,7 +498,7 @@ export default function Dashboard() {
                 accumulatedSpeechRef.current = '';
                 setLiveTranscript('');
               }
-            }, 2000);
+            }, 800);
           } else {
             setLiveTranscript(cleanedText);
             setManualInput(prev => {
@@ -690,12 +692,12 @@ export default function Dashboard() {
 
 
   const generateSuggestions = async (questionText) => {
-    const jwtToken = localStorage.getItem('token');
+    const jwtToken = getCookie('token');
     if (!jwtToken) {
       console.error('Missing auth token for suggestions');
       return;
     }
-    const suggRes = await fetch(`${API_BASE_URL}/api/ai/suggestions`, {
+    const suggRes = await fetchWithAuth(`${API_BASE_URL}/api/ai/suggestions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -734,7 +736,7 @@ export default function Dashboard() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }]);
 
-    const jwtToken = localStorage.getItem('token');
+    const jwtToken = getCookie('token');
     if (!jwtToken) {
       setMessages(prev => prev.map(msg => msg.id === aiMessageId
         ? { ...msg, text: 'Error: Not authenticated. Please sign in again.', isStreaming: false }
@@ -744,7 +746,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -837,13 +839,13 @@ export default function Dashboard() {
     // Save session to backend
     if (messages.length > 1) {
       try {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        const token = getCookie('token');
+        const userData = getCookie('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
           const activeMessages = messages.filter(m => m.type !== 'system');
           
-          await fetch(`${API_BASE_URL}/api/sessions/save`, {
+          await fetchWithAuth(`${API_BASE_URL}/api/sessions/save`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -882,9 +884,9 @@ export default function Dashboard() {
   const handleScreenCapture = async () => {
     setIsSolving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getCookie('token');
       // Hit the silent backend capture API instead of browser screen share
-      const captureRes = await fetch(`${API_BASE_URL}/api/ai/capture-screen`, {
+      const captureRes = await fetchWithAuth(`${API_BASE_URL}/api/ai/capture-screen`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -900,8 +902,8 @@ export default function Dashboard() {
       let dataURL = captureData.imageBase64;
 
       if (dataURL) {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_BASE_URL}/api/ai/solve-screenshot`, {
+        const token = getCookie('token');
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/ai/solve-screenshot`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1015,8 +1017,8 @@ export default function Dashboard() {
             </div>
             <button 
               onClick={() => {
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
+                removeCookie('user');
+                removeCookie('token');
                 navigate('/');
               }} 
               className="text-text-tertiary hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-all"
@@ -1340,8 +1342,8 @@ export default function Dashboard() {
                       setIsSolving(true);
                       setSolverAnswer('');
                       try {
-                        const token = localStorage.getItem('token');
-                        const res = await fetch(`${API_BASE_URL}/api/ai/solve-screenshot`, {
+                        const token = getCookie('token');
+                        const res = await fetchWithAuth(`${API_BASE_URL}/api/ai/solve-screenshot`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
