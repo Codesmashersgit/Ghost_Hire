@@ -42,7 +42,7 @@ const callAzureAI = async (messages, model, res) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${GITHUB_TOKEN}`
         },
-        body: JSON.stringify({ model: currentModel, messages, stream: true })
+        body: JSON.stringify({ model: currentModel, messages, stream: true, max_tokens: 150 })
       });
 
       if (response.status === 429) {
