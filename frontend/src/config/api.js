@@ -1,9 +1,6 @@
-// API Configuration
-// Single source of truth for all API calls
-
-export const API_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:5000' 
-  : 'https://ghost-hire-uyn2.onrender.com';
+// For Electron desktop app, backend always runs locally on port 5000
+// Change this to your Render URL only if deploying as web app
+export const API_BASE_URL = 'http://localhost:5000';
 
 export const API_ENDPOINTS = {
   // Admin

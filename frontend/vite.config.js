@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  // Electron loads the packaged app using the file:// protocol.  Absolute
+  // asset URLs (the Vite default) point at the filesystem root there, so the
+  // renderer never loads its JS/CSS and the window stays blank.
+  base: './',
   plugins: [
     react(),
     tailwindcss(),

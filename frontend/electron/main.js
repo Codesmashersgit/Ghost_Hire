@@ -183,7 +183,7 @@ app.whenReady().then(() => {
         shell.beep(); // First beep = capturing
 
         const token = await mainWindow.webContents.executeJavaScript(
-          `document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] || ''`
+          `localStorage.getItem('token') || ''`
         );
 
         const response = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
