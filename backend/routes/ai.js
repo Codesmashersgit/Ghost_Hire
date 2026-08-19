@@ -25,18 +25,17 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// Fallback model chain — tries each in order if previous is overloaded/unavailable
-const GEMINI_MODELS = [
-  'gemini-2.5-flash',       // Best quality
-  'gemini-2.0-flash',       // Fast & reliable
-  'gemini-2.0-flash-lite',  // Lightest, almost never overloaded
+// Groq PRIMARY — free, unlimited, ultra-fast (no quota issues)
+const GROQ_MODELS = [
+  'llama3-70b-8192',   // Stable Groq model
+  'llama3-8b-8192',    // Stable Groq fallback
 ];
 
-// Groq models — ultimate fallback (free, ultra-fast LLaMA)
-const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',   // most capable
-  'llama-3.1-8b-instant',      // fastest
+// Gemini FALLBACK — only if Groq fails
+const GEMINI_MODELS = [
+  'gemini-3.6-flash',  // Updated based on API response
 ];
+
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -313,22 +312,74 @@ ACHIEVEMENTS:
 - Built and deployed multiple production-ready applications using Docker and AWS.
 `;
 
-  const systemInstruction = `You are Sudhanshu Raj — a Full Stack Developer — speaking directly in a live technical job interview.
-You MUST answer every question in FIRST PERSON, exactly as Sudhanshu would speak. Use "I", "my", "I built", "In my experience", "At my project", etc.
+  const systemInstruction = `You are Sudhanshu Raj — a sharp Full Stack Developer — speaking live in a technical interview or assessment. You respond INSTANTLY, CONFIDENTLY, and ACCURATELY to every type of question.
 
-Here is your complete profile and background. Use it to give accurate, personalized answers:
+Here is your complete profile:
 ${CANDIDATE_RESUME}
 
-RULES:
-1. For behavioral/HR questions — answer using real details from the resume above. Sound natural and confident.
-2. For project-related questions — refer to GhostHire or the Online IDE projects.
-3. For technical/DSA/coding questions — give the optimal solution with code and briefly explain time/space complexity.
-4. For Multiple Choice Questions (MCQs) — Provide the correct option immediately, then a brief 1-line justification.
-5. For puzzles and logical reasoning — Provide the direct answer first, followed by the logical deduction steps.
-6. For system design questions — answer using your real experience with Docker, AWS, Nginx.
-7. NEVER say "As an AI". You ARE Sudhanshu Raj.
-8. Do NOT use conversational filler like "Great question!"
-7. Keep answers sharp, confident, and professional. Respond in ${language || 'English'}.`;
+═══════════════════════════════════════════
+QUESTION TYPE HANDLING — READ CAREFULLY
+═══════════════════════════════════════════
+
+1. DSA / CODING QUESTIONS (LeetCode, HackerRank, etc.):
+   Give a TWO-PHASE response so the candidate can EXPLAIN logic first, then show code:
+
+   **Phase 1 — Explain (Easy Language, for speaking to interviewer):**
+   - Start with Brute Force idea in 1-2 lines (simple language, like you're thinking aloud)
+   - Then say "But we can optimize this..." and explain the optimal approach in simple words
+   - Mention the intuition: WHY this approach works
+   - Time & Space complexity of both approaches
+
+   **Phase 2 — Code (Clean, Ready to type/paste):**
+   - Full working optimal code
+   - Use the language asked, default to Python or JavaScript
+   - Add brief inline comments for key steps
+
+   **Phase 3 — Cross Questions (prepare for follow-ups):**
+   - List 2-3 likely follow-up questions the interviewer might ask and their quick answers
+
+
+2. MCQ / MULTIPLE CHOICE:
+   - State the correct option FIRST (e.g., "Answer: B").
+   - Then give a crisp 1-line reason why it's correct.
+   - Do NOT waste time explaining wrong options.
+
+3. SQL / DATABASE QUESTIONS:
+   - Write the full optimized SQL query.
+   - Briefly explain joins/aggregations if needed.
+   - For MongoDB: use proper aggregation pipelines or query operators.
+
+4. SYSTEM DESIGN:
+   - Use your real experience: Docker, AWS EC2, Nginx, WebSockets, MongoDB.
+   - Give high-level architecture + key decisions.
+
+5. BEHAVIORAL / HR:
+   - Answer in first person using real resume details.
+   - Sound natural, confident, NOT scripted.
+
+6. PUZZLES / BRAIN TEASERS / LOGICAL REASONING:
+   - State the direct answer FIRST.
+   - Then explain the logic/deduction clearly.
+
+7. UNCLEAR / PARTIAL AUDIO (conversation snippets, noisy audio):
+   - If the question is unclear or incomplete, make a SMART PREDICTION of what was likely asked based on context.
+   - Give a GENERIC but USEFUL answer that covers the most probable intent.
+   - Example: If you hear "...difference between... and...", assume they're asking about common pairs like: async/await vs promises, SQL vs NoSQL, REST vs GraphQL, etc.
+   - ALWAYS give something useful — NEVER say "I didn't understand the question".
+
+8. CONVERSATION BETWEEN TWO PEOPLE:
+   - If audio captures a 2-person conversation, identify the QUESTION being asked to the candidate.
+   - Ignore filler/pleasantries, focus on the technical or behavioral question.
+   - Answer directly as Sudhanshu Raj.
+
+═══════════════════════════════════════════
+STRICT RULES:
+═══════════════════════════════════════════
+- NEVER say "As an AI" or "I'm an AI". You ARE Sudhanshu Raj.
+- NEVER say "Great question!" or any filler.
+- NEVER apologize or say you don't know — always give your best answer.
+- Keep answers sharp, structured, and professional.
+- Respond in ${language || 'English'}.`;
 
   // Build a single user prompt including history and context
   let historyText = '';
@@ -345,6 +396,136 @@ RULES:
     if (!res.headersSent) {
       res.status(500).json({ success: false, message: 'AI request failed' });
     }
+  }
+});
+
+// @route   POST /api/ai/quick-explain
+// @desc    Fast theory-only answer from screenshot (no code) — Ctrl+Shift+X
+router.post('/quick-explain', authMiddleware, async (req, res) => {
+  const { imageBase64 } = req.body;
+  if (!imageBase64) return res.status(400).json({ success: false, message: 'Image required' });
+
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq key missing' });
+
+  try {
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    
+    const systemInstruction = `You are an expert DSA/coding/MCQ solver assistant.
+Analyze the question in the image and give ONLY the theoretical explanation — NO CODE.
+
+Format your response like this:
+
+**🧠 Understanding:**
+[What the question is asking in simple 1-2 lines]
+
+**💪 Brute Force:**
+[Simple idea, time complexity]
+
+**⚡ Optimal Approach:**
+[Better idea explained simply — why it works, intuition]
+[Time: O(?), Space: O(?)]
+
+**🗣️ Say to Interviewer:**
+[3-4 sentences you can speak out loud to the interviewer right now]
+
+Keep it SHORT and FAST. No code. Easy language.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.2-11b-vision-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: systemInstruction + "\n\nExplain this question theoretically only. No code." },
+              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
+            ]
+          }
+        ],
+        temperature: 0.4
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'Groq Vision Error');
+    }
+
+    const data = await response.json();
+    return res.json({ success: true, answer: data.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error('quick-explain error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to explain' });
+  }
+});
+
+// @route   POST /api/ai/get-code
+// @desc    Get full optimized code for a question — Ctrl+Shift+C
+router.post('/get-code', authMiddleware, async (req, res) => {
+  const { imageBase64 } = req.body;
+  if (!imageBase64) return res.status(400).json({ success: false, message: 'Image required' });
+
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq key missing' });
+
+  try {
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    const systemInstruction = `You are an expert competitive programmer.
+Give ONLY the complete, optimal, working code for this question.
+
+Format:
+**💻 Code (Language):**
+\`\`\`language
+[full code with brief inline comments]
+\`\`\`
+
+**📊 Complexity:**
+- Time: O(?)
+- Space: O(?)
+
+**⚠️ Edge Cases:**
+[1-2 important edge cases handled]
+
+No long explanation. Just clean ready-to-type code.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.2-11b-vision-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: systemInstruction + "\n\nGive only the complete optimal code solution." },
+              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
+            ]
+          }
+        ],
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'Groq Vision Error');
+    }
+
+    const data = await response.json();
+    return res.json({ success: true, answer: data.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error('get-code error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to get code' });
   }
 });
 
@@ -385,61 +566,68 @@ router.get('/capture-screen', authMiddleware, async (req, res) => {
 });
 
 // @route   POST /api/ai/solve-screenshot
-// @desc    Process a screenshot and extract the answer using Gemini Vision model
+// @desc    Process a screenshot and extract the answer using Groq Vision model
 router.post('/solve-screenshot', authMiddleware, async (req, res) => {
   const { imageBase64 } = req.body;
   if (!imageBase64) return res.status(400).json({ success: false, message: 'Image is required' });
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) {
-    return res.status(500).json({ success: false, message: 'Gemini API key not configured on server.' });
-  }
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq API key missing' });
 
   try {
-    // Import GoogleGenerativeAI dynamically from the SDK
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
-    
-    // Extract base64 details
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     
-    const imagePart = {
-      inlineData: {
-        data: base64Data,
-        mimeType: "image/png"
-      }
-    };
+    const systemInstruction = `You are an expert programmer and assessment solver with deep knowledge of DSA, SQL, MongoDB, system design, and MCQs.
 
-    const systemInstruction = `You are an expert assessment solver.
-The user has provided an image of a coding problem (like LeetCode), multiple choice question (MCQ), or general assessment.
-Your goal is to extract the question and provide the direct, most correct answer.
-If it is a coding question, provide ONLY the clean, fully functional, optimized code block (without backticks if possible, or just the standard markdown block). Do not explain the code.
-If it is multiple choice, provide ONLY the correct option text or number.
-Do NOT include any conversational filler, greetings, or explanation.
-Keep it extremely concise so it can be used instantly.`;
+Analyze the screenshot and solve the question instantly:
 
-    const model = ai.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
-      systemInstruction: systemInstruction
+- CODING / DSA: Provide the complete, optimal, working code. Include time & space complexity at the end.
+- MCQ: State the correct option first (e.g. "Answer: B"), then a 1-line reason.
+- SQL: Write the full optimized query.
+- MongoDB: Write the correct query/aggregation pipeline.
+- PUZZLE / LOGIC: Give the direct answer, then brief explanation.
+- FILL IN THE BLANK / SHORT ANSWER: Give the direct answer only.
+
+Format output cleanly. Be concise. No greetings, no filler. Just the answer.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.2-11b-vision-preview', // Will keep this for now, if it fails we can switch to standard vision model
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: systemInstruction + "\n\nSolve this assessment question. Provide only the final answer or code." },
+              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
+            ]
+          }
+        ],
+        temperature: 0.2
+      })
     });
 
-    const result = await model.generateContent([
-      "Solve this assessment question. Provide only the final answer or code.",
-      imagePart
-    ]);
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'Groq Vision Error');
+    }
 
-    let answer = result.response.text() || '';
-    
-    // Clean up code block backticks if present and it's the only thing
+    const data = await response.json();
+    let answer = data.choices[0].message.content.trim();
+
     if (answer.startsWith('```') && answer.endsWith('```')) {
       const lines = answer.split('\n');
       answer = lines.slice(1, -1).join('\n');
     }
 
-    return res.json({ success: true, answer: answer.trim() });
+    return res.json({ success: true, answer });
   } catch (error) {
-    console.error('Gemini vision solve error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to solve screenshot using Gemini API' });
+    console.error('Groq vision solve error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to solve screenshot using Groq API' });
   }
 });
 

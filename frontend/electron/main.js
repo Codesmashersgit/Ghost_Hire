@@ -103,8 +103,10 @@ function createWindow() {
   // Show window when fully loaded (prevents white flash)
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    // Uncomment below line ONLY for debugging mic issues:
-    // mainWindow.webContents.openDevTools();
+    // STEALTH: Make window invisible to screen capture, OBS, Zoom/Meet screen share
+    // Window will only appear on physical display — not in any recording or share
+    mainWindow.setContentProtection(true);
+    // mainWindow.webContents.openDevTools(); // Uncomment only for debugging
   });
 
   // Prevent closing — just hide to system tray
@@ -118,21 +120,29 @@ function createWindow() {
 
 function createOverlayWindow() {
   overlayWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 480,           // Compact width — fits on side without blocking exam
+    height: 700,          // Tall enough to show full answer
+    x: 10,               // Left side of screen
+    y: 80,               // Small gap from top
     transparent: true,
+    backgroundColor: '#00000000',
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    focusable: false, // Can't be focused, won't steal focus from exam
+    focusable: false,     // Won't steal focus from exam
     show: false,
+    resizable: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     }
   });
 
-  // Make it completely click-through so user can click their exam underneath
+  // CRITICAL: Invisible to Zoom/Meet screen share, OBS, screen recording
+  // Only visible on your physical monitor — interviewer sees nothing!
+  overlayWindow.setContentProtection(true);
+
+  // Click-through: clicks pass to exam portal underneath
   overlayWindow.setIgnoreMouseEvents(true, { forward: true });
 
   if (isDev) {
@@ -141,6 +151,7 @@ function createOverlayWindow() {
     overlayWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'overlay' });
   }
 }
+
 
 app.whenReady().then(() => {
   createWindow();
@@ -170,50 +181,89 @@ app.whenReady().then(() => {
     console.error('Tray icon failed:', e.message);
   }
 
-  // ── Global Shortcut: Ctrl+Shift+X → Screenshot Solve ──────────────────────
-  globalShortcut.register('CommandOrControl+Shift+X', async () => {
-    console.log('[Shortcut] Screenshot capture triggered');
+  // Store last screenshot for reuse in get-code shortcut
+  let lastScreenshot = null;
+
+  // Helper: get token from mainWindow localStorage
+  const getToken = async () => {
     try {
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: 1920, height: 1080 }
+      return await mainWindow.webContents.executeJavaScript(`localStorage.getItem('token') || ''`);
+    } catch { return ''; }
+  };
+
+  // Helper: show answer in overlay + copy to clipboard
+  const showInOverlay = (text, label) => {
+    clipboard.writeText(text);
+    shell.beep();
+    if (overlayWindow) {
+      overlayWindow.webContents.send('show-answer', text);
+      overlayWindow.showInactive();
+    }
+    console.log(`[Shortcut] ${label} shown in overlay`);
+  };
+
+  // ── Ctrl+Shift+X → THEORY ONLY (fast, no code) ────────────────────────────
+  globalShortcut.register('CommandOrControl+Shift+X', async () => {
+    console.log('[Shortcut] Quick Explain triggered');
+    try {
+      const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+      if (!sources.length) return;
+
+      lastScreenshot = sources[0].thumbnail.toDataURL(); // Save for Ctrl+Shift+C
+      shell.beep(); // Beep 1 = capturing
+
+      const token = await getToken();
+      const response = await fetch('http://localhost:5000/api/ai/quick-explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: lastScreenshot })
       });
-      if (sources.length > 0) {
-        const dataURL = sources[0].thumbnail.toDataURL();
-        shell.beep(); // First beep = capturing
 
-        const token = await mainWindow.webContents.executeJavaScript(
-          `localStorage.getItem('token') || ''`
-        );
-
-        const response = await fetch('http://localhost:5000/api/ai/solve-screenshot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ imageBase64: dataURL })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.answer) {
-            clipboard.writeText(result.answer);
-            shell.beep(); // Second beep = answer ready in clipboard
-            console.log('[Shortcut] Answer copied to clipboard');
-
-            // Send answer to overlay and show it
-            if (overlayWindow) {
-              overlayWindow.webContents.send('show-answer', result.answer);
-              overlayWindow.showInactive(); // Show without stealing focus
-            }
-          }
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.answer) {
+          showInOverlay(result.answer, 'Theory');
         }
+      } else {
+        console.error('[Shortcut] quick-explain failed:', response.status);
       }
     } catch (err) {
-      console.error('[Shortcut] Error:', err.message);
+      console.error('[Shortcut] Ctrl+Shift+X Error:', err.message);
     }
   });
+
+  // ── Ctrl+Shift+C → CODE ONLY (uses last screenshot) ───────────────────────
+  globalShortcut.register('CommandOrControl+Shift+C', async () => {
+    console.log('[Shortcut] Get Code triggered');
+    try {
+      // If no previous screenshot, capture fresh one
+      if (!lastScreenshot) {
+        const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+        if (!sources.length) return;
+        lastScreenshot = sources[0].thumbnail.toDataURL();
+      }
+      shell.beep(); // Beep = fetching code
+
+      const token = await getToken();
+      const response = await fetch('http://localhost:5000/api/ai/get-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: lastScreenshot })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.answer) {
+          showInOverlay(result.answer, 'Code');
+        }
+      } else {
+        console.error('[Shortcut] get-code failed:', response.status);
+      }
+    } catch (err) {
+      console.error('[Shortcut] Ctrl+Shift+C Error:', err.message);
+    }
+  });
+
 
   // ── Global Shortcut: Ctrl+Shift+Z → Hide Overlay ─────────────────────────
   globalShortcut.register('CommandOrControl+Shift+Z', () => {
