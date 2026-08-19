@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, desktopCapturer, globalShortcut, clipboard, Tray, Menu, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, session, desktopCapturer, globalShortcut, clipboard, Tray, Menu, nativeImage, shell, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -196,11 +196,44 @@ app.whenReady().then(() => {
     clipboard.writeText(text);
     shell.beep();
     if (overlayWindow) {
-      overlayWindow.webContents.send('show-answer', text);
+      overlayWindow.webContents.send('show-answer', text, label);
       overlayWindow.showInactive();
     }
     console.log(`[Shortcut] ${label} shown in overlay`);
   };
+
+  // Listen for GET CODE click from the overlay
+  ipcMain.on('request-code', async () => {
+    console.log('[IPC] Get Code button clicked from overlay');
+    try {
+      if (!lastScreenshot) {
+        const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+        if (!sources.length) return;
+        lastScreenshot = sources[0].thumbnail.toDataURL();
+      }
+      shell.beep(); // Beep = fetching code
+      const token = await getToken();
+      const response = await fetch('http://localhost:5000/api/ai/get-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: lastScreenshot })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.answer) {
+          showInOverlay(result.answer, 'Code');
+        } else {
+          showInOverlay('Error: ' + (result.message || 'Failed to get code'), 'Error');
+        }
+      } else {
+        let errMsg = `Backend returned ${response.status}`;
+        try { const errRes = await response.json(); if (errRes.message) errMsg = errRes.message; } catch(e){}
+        showInOverlay(`Error: ${errMsg}`, 'Error');
+      }
+    } catch (err) {
+      showInOverlay('Error: ' + err.message, 'Error');
+    }
+  });
 
   // ── Ctrl+Shift+X → THEORY ONLY (fast, no code) ────────────────────────────
   globalShortcut.register('CommandOrControl+Shift+X', async () => {
@@ -223,11 +256,17 @@ app.whenReady().then(() => {
         const result = await response.json();
         if (result.success && result.answer) {
           showInOverlay(result.answer, 'Theory');
+        } else {
+          showInOverlay('Error: ' + (result.message || 'Failed to get answer'), 'Error');
         }
       } else {
+        let errMsg = `Backend returned ${response.status}`;
+        try { const errRes = await response.json(); if (errRes.message) errMsg = errRes.message; } catch(e){}
+        showInOverlay(`Error: ${errMsg}`, 'Error');
         console.error('[Shortcut] quick-explain failed:', response.status);
       }
     } catch (err) {
+      showInOverlay('Error: ' + err.message, 'Error');
       console.error('[Shortcut] Ctrl+Shift+X Error:', err.message);
     }
   });
@@ -255,11 +294,15 @@ app.whenReady().then(() => {
         const result = await response.json();
         if (result.success && result.answer) {
           showInOverlay(result.answer, 'Code');
+        } else {
+          showInOverlay('Error: ' + (result.message || 'Failed to get code'), 'Error');
         }
       } else {
+        showInOverlay(`Error: Backend returned ${response.status}. Please make sure you are logged in!`, 'Error');
         console.error('[Shortcut] get-code failed:', response.status);
       }
     } catch (err) {
+      showInOverlay('Error: ' + err.message, 'Error');
       console.error('[Shortcut] Ctrl+Shift+C Error:', err.message);
     }
   });

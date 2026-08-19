@@ -12,6 +12,7 @@ if (isElectron) {
 
 export default function Overlay() {
   const [answer, setAnswer] = useState("");
+  const [answerType, setAnswerType] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef(null);
@@ -31,8 +32,9 @@ export default function Overlay() {
     document.head.appendChild(style);
 
     if (!ipcRenderer) return;
-    const handleShowAnswer = (event, text) => {
+    const handleShowAnswer = (event, text, type) => {
       setAnswer(text);
+      setAnswerType(type || 'Theory');
       setIsVisible(true);
       setCopied(false);
       setTimeout(() => {
@@ -56,6 +58,12 @@ export default function Overlay() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleGetCode = () => {
+    setAnswer("Fetching optimal code... Please wait...");
+    setAnswerType("Loading");
+    if (ipcRenderer) ipcRenderer.send('request-code');
+  };
+
   if (!isVisible) return <div style={{ width: "100vw", height: "100vh", backgroundColor: "transparent" }} />;
 
   return (
@@ -65,10 +73,15 @@ export default function Overlay() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "8px", marginBottom: "10px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#4ade80" }} />
-            <span style={{ color: "#818cf8", fontWeight: "bold", fontSize: "12px" }}>AI COPILOT</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: answerType === 'Code' ? "#f59e0b" : "#4ade80" }} />
+            <span style={{ color: "#818cf8", fontWeight: "bold", fontSize: "12px" }}>AI COPILOT {answerType ? `— ${answerType.toUpperCase()}` : ''}</span>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {answerType === 'Theory' && (
+              <button onClick={handleGetCode} style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", color: "#fcd34d", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "bold" }}>
+                GET CODE
+              </button>
+            )}
             <button onClick={handleCopy} style={{ background: copied ? "rgba(74,222,128,0.2)" : "rgba(129,140,248,0.15)", border: `1px solid ${copied ? "rgba(74,222,128,0.5)" : "rgba(129,140,248,0.3)"}`, color: copied ? "#4ade80" : "#818cf8", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "bold" }}>
               {copied ? "COPIED!" : "COPY ALL"}
             </button>

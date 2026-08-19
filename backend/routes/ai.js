@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import screenshot from 'screenshot-desktop';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123';
@@ -27,8 +28,8 @@ const authMiddleware = (req, res, next) => {
 
 // Groq PRIMARY — free, unlimited, ultra-fast (no quota issues)
 const GROQ_MODELS = [
-  'llama3-70b-8192',   // Stable Groq model
-  'llama3-8b-8192',    // Stable Groq fallback
+  'llama-3.3-70b-versatile',   // Stable Groq model
+  'llama-3.1-8b-instant',    // Stable Groq fallback
 ];
 
 // Gemini FALLBACK — only if Groq fails
@@ -401,12 +402,12 @@ STRICT RULES:
 
 // @route   POST /api/ai/quick-explain
 // @desc    Fast theory-only answer from screenshot (no code) — Ctrl+Shift+X
-router.post('/quick-explain', authMiddleware, async (req, res) => {
+router.post('/quick-explain', (req, res, next) => { console.log('>>> QUICK-EXPLAIN INCOMING REQ <<<'); next(); }, authMiddleware, async (req, res) => {
   const { imageBase64 } = req.body;
   if (!imageBase64) return res.status(400).json({ success: false, message: 'Image required' });
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq key missing' });
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) return res.status(500).json({ success: false, message: 'Gemini API key missing' });
 
   try {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -431,37 +432,29 @@ Format your response like this:
 
 Keep it SHORT and FAST. No code. Easy language.`;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: systemInstruction + "\n\nExplain this question theoretically only. No code." },
-              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
-            ]
-          }
-        ],
-        temperature: 0.4
-      })
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // Use gemini-1.5-flash as the fallback, it is the standard and widely available. (Wait, let's use gemini-1.5-flash)
+    const geminiModel = genAI.getGenerativeModel({
+      model: "gemini-3.6-flash",
+      systemInstruction,
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'Groq Vision Error');
-    }
+    const imageParts = [{
+      inlineData: {
+        data: base64Data,
+        mimeType: "image/png"
+      }
+    }];
 
-    const data = await response.json();
-    return res.json({ success: true, answer: data.choices[0].message.content.trim() });
+    const result = await geminiModel.generateContent([
+      "Explain this question theoretically only. No code.", 
+      ...imageParts
+    ]);
+    const response = await result.response;
+    return res.json({ success: true, answer: response.text().trim() });
   } catch (err) {
     console.error('quick-explain error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to explain' });
+    return res.status(500).json({ success: false, message: err.message || 'Failed to explain' });
   }
 });
 
@@ -471,61 +464,46 @@ router.post('/get-code', authMiddleware, async (req, res) => {
   const { imageBase64 } = req.body;
   if (!imageBase64) return res.status(400).json({ success: false, message: 'Image required' });
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq key missing' });
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) return res.status(500).json({ success: false, message: 'Gemini API key missing' });
 
   try {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const systemInstruction = `You are an expert competitive programmer.
-Give ONLY the complete, optimal, working code for this question.
+Provide ONLY the most optimal code solution for the problem shown in the image.
+Include brief comments explaining time and space complexity at the top.
+Do NOT include theoretical explanations — JUST CODE.`;
 
-Format:
-**💻 Code (Language):**
-\`\`\`language
-[full code with brief inline comments]
-\`\`\`
-
-**📊 Complexity:**
-- Time: O(?)
-- Space: O(?)
-
-**⚠️ Edge Cases:**
-[1-2 important edge cases handled]
-
-No long explanation. Just clean ready-to-type code.`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: systemInstruction + "\n\nGive only the complete optimal code solution." },
-              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
-            ]
-          }
-        ],
-        temperature: 0.2
-      })
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const geminiModel = genAI.getGenerativeModel({
+      model: "gemini-3.6-flash",
+      systemInstruction,
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'Groq Vision Error');
+    const imageParts = [{
+      inlineData: {
+        data: base64Data,
+        mimeType: "image/png"
+      }
+    }];
+
+    const result = await geminiModel.generateContent([
+      "Write optimal code for this question.", 
+      ...imageParts
+    ]);
+    const response = await result.response;
+    let answer = response.text().trim();
+
+    if (answer.startsWith('```') && answer.endsWith('```')) {
+      const lines = answer.split('\n');
+      answer = lines.slice(1, -1).join('\n');
     }
 
-    const data = await response.json();
-    return res.json({ success: true, answer: data.choices[0].message.content.trim() });
+    return res.json({ success: true, answer });
   } catch (err) {
     console.error('get-code error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to get code' });
+    return res.status(500).json({ success: false, message: err.message || 'Failed to get code' });
   }
 });
 
@@ -566,13 +544,13 @@ router.get('/capture-screen', authMiddleware, async (req, res) => {
 });
 
 // @route   POST /api/ai/solve-screenshot
-// @desc    Process a screenshot and extract the answer using Groq Vision model
+// @desc    Process a screenshot and extract the answer using Gemini Vision model
 router.post('/solve-screenshot', authMiddleware, async (req, res) => {
   const { imageBase64 } = req.body;
   if (!imageBase64) return res.status(400).json({ success: false, message: 'Image is required' });
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) return res.status(500).json({ success: false, message: 'Groq API key missing' });
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) return res.status(500).json({ success: false, message: 'Gemini API key missing' });
 
   try {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
@@ -590,34 +568,25 @@ Analyze the screenshot and solve the question instantly:
 
 Format output cleanly. Be concise. No greetings, no filler. Just the answer.`;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview', // Will keep this for now, if it fails we can switch to standard vision model
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: systemInstruction + "\n\nSolve this assessment question. Provide only the final answer or code." },
-              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
-            ]
-          }
-        ],
-        temperature: 0.2
-      })
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const geminiModel = genAI.getGenerativeModel({
+      model: "gemini-3.6-flash",
+      systemInstruction,
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'Groq Vision Error');
-    }
+    const imageParts = [{
+      inlineData: {
+        data: base64Data,
+        mimeType: "image/png"
+      }
+    }];
 
-    const data = await response.json();
-    let answer = data.choices[0].message.content.trim();
+    const result = await geminiModel.generateContent([
+      "Solve the question in the screenshot.", 
+      ...imageParts
+    ]);
+    const response = await result.response;
+    let answer = response.text().trim();
 
     if (answer.startsWith('```') && answer.endsWith('```')) {
       const lines = answer.split('\n');
@@ -626,8 +595,8 @@ Format output cleanly. Be concise. No greetings, no filler. Just the answer.`;
 
     return res.json({ success: true, answer });
   } catch (error) {
-    console.error('Groq vision solve error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to solve screenshot using Groq API' });
+    console.error('Gemini vision solve error:', error.message);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to solve screenshot' });
   }
 });
 
