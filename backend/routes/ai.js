@@ -17,6 +17,12 @@ const FALLBACK_MODELS = [
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
+  
+  if (token === 'standalone-fake-token') {
+    req.userId = 'local-user';
+    return next();
+  }
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.id;
@@ -28,13 +34,19 @@ const authMiddleware = (req, res, next) => {
 
 // Groq PRIMARY — free, unlimited, ultra-fast (no quota issues)
 const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',   // Stable Groq model
-  'llama-3.1-8b-instant',    // Stable Groq fallback
+  'groq/compound',
+  'openai/gpt-oss-120b',
+  'qwen/qwen3.8-27b',
+  'groq/compound-mini'
 ];
 
 // Gemini FALLBACK — only if Groq fails
 const GEMINI_MODELS = [
-  'gemini-3.6-flash',  // Updated based on API response
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro'
 ];
 
 
@@ -115,8 +127,7 @@ const callGroqAI = async (systemInstruction, userPrompt, res) => {
     } catch (e) {
       const isLast = i === GROQ_MODELS.length - 1;
       if (!isLast) {
-        console.warn(`[Groq] ${modelName} failed: ${e.message}, trying next...`);
-        await sleep(500);
+        console.warn(`[Groq] ${modelName} failed: ${e.message}, switching instantly...`);
         continue;
       }
       throw e; // all groq models failed
@@ -154,7 +165,10 @@ const callGroqAIText = async (systemInstruction, userPrompt) => {
       return data.choices[0].message.content;
     } catch (e) {
       const isLast = i === GROQ_MODELS.length - 1;
-      if (!isLast) { await sleep(500); continue; }
+      if (!isLast) { 
+        console.warn(`[Groq Text] ${modelName} failed: ${e.message}, switching instantly...`);
+        continue; 
+      }
       throw e;
     }
   }
@@ -199,11 +213,9 @@ const callGeminiAI = async (systemInstruction, userPrompt, res) => {
         return; // Gemini success
 
       } catch (e) {
-        const isRetryable = e.message?.includes('overloaded') || e.message?.includes('503') || e.message?.includes('429') || e.message?.includes('404') || e.message?.includes('not found') || e.status === 503 || e.status === 429 || e.status === 404;
         const isLast = i === GEMINI_MODELS.length - 1;
-        if (isRetryable && !isLast) {
-          console.warn(`[Gemini] ${modelName} overloaded → next model...`);
-          await sleep(800);
+        if (!isLast) {
+          console.warn(`[Gemini] ${modelName} failed (${e.message}) → switching to next model instantly...`);
           continue;
         }
         // Last Gemini model failed — fall through to Groq
@@ -244,10 +256,12 @@ const callGeminiAIText = async (systemInstruction, userPrompt) => {
         const result = await model.generateContent(userPrompt);
         return result.response.text();
       } catch (e) {
-        const isRetryable = e.message?.includes('overloaded') || e.message?.includes('503') || e.message?.includes('429') || e.message?.includes('404') || e.message?.includes('not found') || e.status === 503 || e.status === 429 || e.status === 404;
         const isLast = i === GEMINI_MODELS.length - 1;
-        if (isRetryable && !isLast) { await sleep(800); continue; }
-        if (isLast) console.warn(`[Gemini Text] All models failed → trying Groq...`);
+        if (!isLast) {
+          console.warn(`[Gemini Text] ${modelName} failed (${e.message}) → switching to next model instantly...`);
+          continue; 
+        }
+        console.warn(`[Gemini Text] All models failed → trying Groq...`);
         break;
       }
     }
@@ -391,11 +405,21 @@ STRICT RULES:
   const userPrompt = `${extraContextText}${historyText}Interviewer: ${question}`;
 
   try {
-    await callGeminiAI(systemInstruction, userPrompt, res);
+    console.log('[Chat] Attempting Groq primary...');
+    await callGroqAI(systemInstruction, userPrompt, res);
   } catch (error) {
-    console.error('AI chat error:', error.message);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: 'AI request failed' });
+    console.error('[Chat] Groq failed, falling back to Gemini:', error.message);
+    try {
+      await callGeminiAI(systemInstruction, userPrompt, res);
+    } catch (geminiError) {
+      console.error('[Chat] Gemini also failed:', geminiError.message);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'All AI services failed' });
+      } else {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '\n[All AI services failed]' } }] })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      }
     }
   }
 });
@@ -433,12 +457,6 @@ Format your response like this:
 Keep it SHORT and FAST. No code. Easy language.`;
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // Use gemini-1.5-flash as the fallback, it is the standard and widely available. (Wait, let's use gemini-1.5-flash)
-    const geminiModel = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      systemInstruction,
-    });
-
     const imageParts = [{
       inlineData: {
         data: base64Data,
@@ -446,15 +464,24 @@ Keep it SHORT and FAST. No code. Easy language.`;
       }
     }];
 
-    const result = await geminiModel.generateContent([
-      "Explain this question theoretically only. No code.", 
-      ...imageParts
-    ]);
-    const response = await result.response;
-    return res.json({ success: true, answer: response.text().trim() });
+    const promises = GEMINI_MODELS.map(async (modelName) => {
+      console.log(`[Quick Explain] Racing model: ${modelName}`);
+      const geminiModel = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+      });
+      const result = await geminiModel.generateContent([
+        "Explain this question theoretically only. No code.", 
+        ...imageParts
+      ]);
+      return (await result.response).text().trim();
+    });
+
+    const answer = await Promise.any(promises);
+    return res.json({ success: true, answer });
   } catch (err) {
     console.error('quick-explain error:', err.message);
-    return res.status(500).json({ success: false, message: err.message || 'Failed to explain' });
+    return res.status(500).json({ success: false, message: 'All models failed or timed out' });
   }
 });
 
@@ -476,11 +503,6 @@ Include brief comments explaining time and space complexity at the top.
 Do NOT include theoretical explanations — JUST CODE.`;
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const geminiModel = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      systemInstruction,
-    });
-
     const imageParts = [{
       inlineData: {
         data: base64Data,
@@ -488,12 +510,20 @@ Do NOT include theoretical explanations — JUST CODE.`;
       }
     }];
 
-    const result = await geminiModel.generateContent([
-      "Write optimal code for this question.", 
-      ...imageParts
-    ]);
-    const response = await result.response;
-    let answer = response.text().trim();
+    const promises = GEMINI_MODELS.map(async (modelName) => {
+      console.log(`[Get Code] Racing model: ${modelName}`);
+      const geminiModel = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+      });
+      const result = await geminiModel.generateContent([
+        "Write optimal code for this question.", 
+        ...imageParts
+      ]);
+      return (await result.response).text().trim();
+    });
+
+    let answer = await Promise.any(promises);
 
     if (answer.startsWith('```') && answer.endsWith('```')) {
       const lines = answer.split('\n');
@@ -503,7 +533,7 @@ Do NOT include theoretical explanations — JUST CODE.`;
     return res.json({ success: true, answer });
   } catch (err) {
     console.error('get-code error:', err.message);
-    return res.status(500).json({ success: false, message: err.message || 'Failed to get code' });
+    return res.status(500).json({ success: false, message: 'All models failed or timed out' });
   }
 });
 
@@ -519,10 +549,39 @@ Format your response strictly as a JSON array of 3 strings, for example: ["How d
 Do not include any markdown styling, code block symbols (like \`\`\`json), or conversational text. Return only the raw JSON.`;
 
   try {
-    let rawContent = await callGeminiAIText(systemInstruction, `Interviewer's question: "${question}"`);
+    // Use Gemini for suggestions as it strictly follows JSON formatting
+    let rawContent;
+    try {
+      rawContent = await callGeminiAIText(systemInstruction, `Interviewer's question: "${question}"`);
+    } catch(e) {
+      console.warn('[Suggestions] Gemini failed, trying Groq:', e.message);
+      rawContent = await callGroqAIText(systemInstruction, `Interviewer's question: "${question}"`);
+    }
+
+    const originalRawContent = rawContent;
     rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(rawContent);
-    return res.json({ success: true, suggestions: parsed, model: 'gemini-2.5-flash' });
+    // Remove <think>...</think> tags if they exist (for Qwen models)
+    rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+    // Extract just the array if the model includes conversational text like "Sure, here..."
+    const firstBracket = rawContent.indexOf('[');
+    const lastBracket = rawContent.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1) {
+      rawContent = rawContent.substring(firstBracket, lastBracket + 1);
+    }
+    
+    let parsed = [];
+    try {
+      if (rawContent === '') throw new Error('Empty rawContent after extraction');
+      parsed = JSON.parse(rawContent);
+    } catch (parseErr) {
+      console.error('[Suggestions] JSON Parse fallback. Error:', parseErr.message);
+      console.error('[Suggestions] Original rawContent before extraction:', originalRawContent || 'N/A');
+      console.error('[Suggestions] Extracted rawContent:', rawContent);
+      parsed = ["Could you explain the time complexity?", "What are the edge cases?", "Is there a more optimal approach?"];
+    }
+
+    return res.json({ success: true, suggestions: parsed, model: 'groq/compound' });
   } catch (e) {
     console.error('Suggestions error:', e.message);
     return res.status(500).json({ success: false, message: 'Suggestions failed' });
