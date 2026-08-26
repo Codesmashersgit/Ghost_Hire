@@ -9,31 +9,31 @@ const plans = [
     icon: <Zap size={20} />,
     price: '₹0',
     period: 'forever',
-    desc: 'Evaluate GhostHire risk-free with unlimited 10-minute trial periods.',
-    features: ['10-minute maximum sessions', 'Unlimited total sessions', 'Access all backend AI models', 'Real-time transcript streams', 'Basic system-design help'],
+    desc: 'Evaluate GhostHire risk-free before upgrading.',
+    features: ['10-minute maximum sessions', 'Standard AI models', 'Basic code and theory help', 'Standard processing speed'],
     cta: 'Start Free',
     popular: false,
-    gradient: 'from-white/5 to-white/2',
+    gradient: 'from-black/5 to-black/2',
   },
   {
-    name: 'Pro Candidate',
+    name: 'Pro',
     icon: <Sparkles size={20} className="animate-pulse text-accent" />,
-    price: '₹1,499',
+    price: '₹99',
     period: '/month',
-    desc: 'Uncompromising capabilities built for active, ambitious software job hunters.',
-    features: ['Unlimited session length', 'Premium AI models (GPT-4o, Claude 3.5)', 'Real-time code parsing', 'Custom resume contextualization', 'Detailed post-session summary logs', 'Dedicated priority processing queue', '50+ local speech models supported'],
-    cta: 'Subscribe Now',
+    desc: 'Advanced tools for active job seekers needing more power.',
+    features: ['Unlimited session length', 'Premium AI models (GPT-4o)', 'Real-time code extraction', 'Resume contextualization', 'Detailed post-session summary'],
+    cta: 'Subscribe Pro',
     popular: true,
-    gradient: 'from-primary/20 to-accent/10',
+    gradient: 'from-primary/10 to-accent/5',
   },
   {
-    name: 'Lifetime Master',
+    name: 'Enterprise',
     icon: <Crown size={20} className="text-warning" />,
-    price: '₹9,999',
-    period: 'one-time',
-    desc: 'Secure your career support for life. The ultimate value across promotions.',
-    features: ['Everything included in Pro Candidate', 'Lifetime infinite access', 'Guaranteed access to all updates', 'Exclusive VIP Discord community', '1-on-1 personalized setup call', 'Advanced early beta tool access'],
-    cta: 'Get Lifetime',
+    price: '₹199',
+    period: '/month',
+    desc: 'The ultimate package with top-tier AI and priority support.',
+    features: ['Everything in Pro', 'Ultimate AI models (Claude 3.5 Sonnet)', 'Dedicated priority servers', '1-on-1 personalized setup', 'Priority email support', 'Custom prompt engineering'],
+    cta: 'Subscribe Enterprise',
     popular: false,
     gradient: 'from-warning/10 to-warning/5',
   },
@@ -100,8 +100,8 @@ export default function Pricing() {
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-[1050px] mx-auto items-stretch">
           {plans.map((plan, i) => {
-            const calculatedPrice = billingCycle === 'yearly' && plan.price !== '₹0'
-              ? (plan.price === '₹1,499' ? '₹4,499' : plan.price) 
+            const calculatedPrice = billingCycle === 'yearly' && plan.period === '/month'
+              ? (plan.price === '₹99' ? '₹999' : (plan.price === '₹199' ? '₹1,999' : plan.price)) 
               : plan.price;
             
             return (

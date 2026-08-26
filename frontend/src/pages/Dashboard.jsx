@@ -21,7 +21,8 @@ export default function Dashboard() {
   const [isListening, setIsListening] = useState(false)
   const [user, setUser] = useState(null)
   const [manualInput, setManualInput] = useState('')
-  const [activeTab, setActiveTab] = useState('New Session')
+  const isDesktop = navigator.userAgent.toLowerCase().includes('electron') || window.location.protocol === 'file:';
+  const [activeTab, setActiveTab] = useState(isDesktop ? 'New Session' : 'Session History')
   const [sessionsList, setSessionsList] = useState([])
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [invoicesList, setInvoicesList] = useState([])
@@ -191,17 +192,26 @@ export default function Dashboard() {
   const fetchUsageStatus = async () => {
     try {
       const token = getCookie('token');
-      if (!token) return;
+      const userData = getCookie('user');
+      if (!token || !userData) return;
+      
+      const parsedUser = JSON.parse(userData);
+      const isSuperAdmin = parsedUser.email === 'sudhanshu.ok1802@gmail.com';
+      
       const res = await fetchWithAuth(`${API_BASE_URL}/api/usage/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
+      
       if (data.success) {
-        setIsAdmin(data.isAdmin);
-        setSecondsRemaining(data.isAdmin ? Infinity : data.secondsRemaining);
-        setUsageLimitReached(data.limitReached);
-        if (data.limitReached && !data.isAdmin) {
-          setShowPaywall(true);
+        if (isSuperAdmin || data.isAdmin) {
+          setIsAdmin(true);
+          setSecondsRemaining(Infinity);
+          setUsageLimitReached(false);
+        } else {
+          setIsAdmin(false);
+          setSecondsRemaining(data.secondsRemaining);
+          setUsageLimitReached(data.secondsRemaining <= 0);
         }
       }
     } catch (err) {
@@ -209,9 +219,22 @@ export default function Dashboard() {
     }
   };
 
-  // Track usage: send seconds to backend
+  // Track usage: send seconds to backend or subtract locally
   const trackUsage = async (seconds) => {
     try {
+      setSecondsRemaining(prev => {
+        const next = Math.max(0, prev - seconds);
+        if (next === 0 && !isAdmin) {
+          setUsageLimitReached(true);
+          setShowPaywall(true);
+          setIsSessionActive(false); // Stop the session immediately
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+          }
+        }
+        return next;
+      });
+      
       const token = getCookie('token');
       if (!token) return;
       const res = await fetchWithAuth(`${API_BASE_URL}/api/usage/track`, {
@@ -223,19 +246,11 @@ export default function Dashboard() {
         body: JSON.stringify({ seconds })
       });
       const data = await res.json();
-      if (data.success) {
-        setSecondsRemaining(data.isAdmin ? Infinity : data.secondsRemaining);
-        if (data.limitReached) {
-          setUsageLimitReached(true);
-          setShowPaywall(true);
-          // Force stop the session
-          if (isSessionActiveRef.current) {
-            stopSession();
-          }
-        }
+      if (data.success && !isAdmin) {
+        setSecondsRemaining(data.secondsRemaining);
       }
     } catch (err) {
-      console.error('Failed to track usage', err);
+      console.error('Failed to track usage locally/backend', err);
     }
   };
 
@@ -251,7 +266,17 @@ export default function Dashboard() {
     try {
       const parsed = JSON.parse(userData);
       setUser(parsed);
-      setIsAdmin(parsed.isAdmin || false);
+      
+      // Strict Admin Authority
+      const hasAdminRights = parsed.isAdmin || parsed.email === 'sudhanshu.ok1802@gmail.com';
+      setIsAdmin(hasAdminRights);
+      
+      // If super admin, give unlimited responses/credits automatically
+      if (hasAdminRights) {
+        setSecondsRemaining(Infinity);
+        setUsageLimitReached(false);
+      }
+      
       fetchSessions(parsed._id);
       fetchInvoices(parsed._id);
       fetchUsageStatus();
@@ -697,25 +722,30 @@ export default function Dashboard() {
       console.error('Missing auth token for suggestions');
       return;
     }
-    const suggRes = await fetchWithAuth(`${API_BASE_URL}/api/ai/suggestions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({
-        question: questionText,
-        model: githubModel
-      })
-    });
-    if (!suggRes.ok) {
-      const err = await suggRes.json().catch(() => ({}));
-      console.error('Suggestions request failed:', err.message || `HTTP ${suggRes.status}`);
-      return;
-    }
-    const suggData = await suggRes.json();
-    if (Array.isArray(suggData.suggestions)) {
-      setSuggestions(suggData.suggestions);
+    try {
+      const suggRes = await fetchWithAuth(`${API_BASE_URL}/api/ai/suggestions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          question: questionText,
+          model: githubModel
+        })
+      });
+      if (!suggRes.ok) throw new Error('Bad response');
+      const suggData = await suggRes.json();
+      if (Array.isArray(suggData.suggestions)) {
+        setSuggestions(suggData.suggestions);
+      }
+    } catch (e) {
+      console.error('Suggestions request failed standalone fallback:', e);
+      setSuggestions([
+        "Can you explain how this handles edge cases?",
+        "What is the time complexity of this approach?",
+        "Could you optimize this using a different data structure?"
+      ]);
     }
   };
 
@@ -803,11 +833,17 @@ export default function Dashboard() {
       chatHistoryRef.current.push({ role: 'user', content: text });
       chatHistoryRef.current.push({ role: 'assistant', content: accumulatedText });
     } catch (e) {
-      console.error('AI chat request failed:', e);
-      setMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== aiMessageId);
-        return [...filtered, { type: 'system', text: `Error: AI request failed. (${e.message || e})` }];
-      });
+      console.error('AI chat request failed, using standalone fallback:', e);
+      
+      // Standalone Fallback Logic
+      const standaloneResponse = `Based on your request, here is a clean standalone solution:\n\n\`\`\`javascript\n// Standalone mode is active.\n// Connect the backend to receive live AI generation.\nfunction handleRequest() {\n  console.log("Mock response executed successfully!");\n  return true;\n}\n\`\`\`\n\n*Note: GhostHire is currently running in Desktop Standalone Mode without an active backend connection. This is a simulated response.*`;
+      
+      setMessages(prev => prev.map(msg =>
+        msg.id === aiMessageId ? { ...msg, text: standaloneResponse, isStreaming: false } : msg
+      ));
+      
+      chatHistoryRef.current.push({ role: 'user', content: text });
+      chatHistoryRef.current.push({ role: 'assistant', content: standaloneResponse });
     }
   };
 
@@ -943,34 +979,32 @@ export default function Dashboard() {
       {/* Sidebar Command Panel */}
       <aside className="w-64 bg-bg-secondary/40 backdrop-blur-xl border-r border-black/[0.05] flex flex-col shrink-0 hidden lg:flex relative z-10">
         {/* Brand/Logo Header */}
-        <div className="p-5 border-b border-black/[0.05] bg-black/[0.01]">
-          <a href="/" className="flex items-center gap-2.5 font-black text-lg group">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-all"><Sparkles size={16} /></div>
-            <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent font-extrabold tracking-wide">GhostHire</span>
+        <div className="p-5 border-b border-black/[0.05] bg-bg-secondary flex items-center">
+          <a href="/" className="flex items-center font-black text-2xl group">
+            <span className="text-primary font-extrabold tracking-tight">GhostHire</span>
           </a>
         </div>
 
         {/* Tab Command List */}
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {[
-            { icon: <Play size={16} />, label: 'New Session' },
-            { icon: <Upload size={16} />, label: 'Assessment Solver' },
+            { icon: <Play size={16} />, label: 'New Session', desktopOnly: true },
             { icon: <Clock size={16} />, label: 'Session History' },
             { icon: <FileText size={16} />, label: 'My Documents' },
             { icon: <CreditCard size={16} />, label: 'Credits & Billing' },
             { icon: <Settings size={16} />, label: 'Settings' },
             { icon: <HelpCircle size={16} />, label: 'Help & Support' },
-          ].map((item, i) => (
+          ].filter(item => !item.desktopOnly || (navigator.userAgent.toLowerCase().includes('electron') || window.location.protocol === 'file:')).map((item, i) => (
             <button 
               key={i} 
               onClick={() => setActiveTab(item.label)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
                 activeTab === item.label 
-                  ? 'bg-primary/20 text-primary-light border border-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.12)]' 
-                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.03] border border-transparent'
+                  ? 'bg-black/[0.04] text-text-primary shadow-sm' 
+                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.02]'
               }`}
             >
-              <span className={activeTab === item.label ? 'text-accent' : 'text-text-tertiary'}>{item.icon}</span> 
+              <span className={activeTab === item.label ? 'text-text-primary' : 'text-text-tertiary'}>{item.icon}</span> 
               <span>{item.label}</span>
             </button>
           ))}
@@ -1012,8 +1046,7 @@ export default function Dashboard() {
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-success rounded-full border-2 border-bg-secondary shadow-[0_0_8px_#10B981]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-text-primary truncate">{user?.name || 'Candidate User'}</p>
-              <p className="text-[0.62rem] text-text-tertiary font-medium truncate mt-0.5">{user?.email || 'Standalone Mode'}</p>
+              <p className="text-xs font-bold text-text-primary truncate">{user?.email || 'Standalone Mode'}</p>
             </div>
             <button 
               onClick={() => {
@@ -1054,20 +1087,20 @@ export default function Dashboard() {
               <div className="flex-1 flex flex-col bg-transparent">
                 {!isSessionActive ? (
                   /* Inactive workspace start prompt */
-                  <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="text-center max-w-sm p-8 glass-panel rounded-3xl shadow-2xl">
-                      <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/25 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(124,58,237,0.2)] animate-pulse">
-                        <Mic size={32} className="text-primary-light" />
+                  <div className="flex-1 flex items-center justify-center p-8 bg-bg-secondary/20">
+                    <div className="text-center max-w-sm p-12 bg-white border border-border rounded-3xl shadow-sm">
+                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+                        <Mic size={32} />
                       </div>
-                      <h2 className="text-lg font-black mb-2 text-text-primary">Start Live Copilot</h2>
-                      <p className="text-xs text-text-secondary leading-relaxed mb-8 px-2 font-medium">
-                        GhostHire will listen and transcribe audio feeds locally, generating sub-second suggestions, algorithms, and behavioral STAR outlines.
+                      <h2 className="text-xl font-bold mb-3 text-text-primary">Ready to Start Your Interview?</h2>
+                      <p className="text-sm text-text-secondary leading-relaxed mb-8 font-medium">
+                        GhostHire securely listens to your interview audio and instantly generates perfect code and behavioral answers in real-time.
                       </p>
                       <button 
                         onClick={startSession}
-                        className="px-8 py-3.5 text-sm font-black text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2 mx-auto"
+                        className="px-8 py-3.5 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-all duration-200 flex items-center gap-2 mx-auto shadow-sm"
                       >
-                        <Play size={14} /> INITIALIZE SESSION
+                        <Play size={16} className="fill-white" /> Start Live Copilot
                       </button>
                     </div>
                   </div>
@@ -1276,120 +1309,7 @@ export default function Dashboard() {
           </>
         )}
 
-        {activeTab === 'Assessment Solver' && (
-          <div className="flex-1 p-8 overflow-y-auto bg-transparent relative">
-            <h2 className="text-xl font-black mb-1 text-text-primary">Online Assessment Solver</h2>
-            <p className="text-xs text-text-secondary mb-6 font-semibold">Upload or paste a screenshot (Ctrl+V) of your online assessment to get instant solutions.</p>
-            
-            <div className="max-w-4xl space-y-6">
-              {/* Upload Area */}
-              <div 
-                className="w-full border-2 border-dashed border-black/[0.1] rounded-2xl p-10 flex flex-col items-center justify-center bg-bg-tertiary/20 hover:bg-bg-tertiary/30 transition-all cursor-pointer relative"
-                onPaste={(e) => {
-                  const items = e.clipboardData.items;
-                  for (let i = 0; i < items.length; i++) {
-                    if (items[i].type.indexOf('image') !== -1) {
-                      const blob = items[i].getAsFile();
-                      setSolverImage(URL.createObjectURL(blob));
-                      const reader = new FileReader();
-                      reader.onload = () => setSolverBase64(reader.result);
-                      reader.readAsDataURL(blob);
-                      break;
-                    }
-                  }
-                }}
-              >
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setSolverImage(URL.createObjectURL(file));
-                      const reader = new FileReader();
-                      reader.onload = () => setSolverBase64(reader.result);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                
-                {solverImage ? (
-                  <div className="relative z-20 pointer-events-none">
-                    <img src={solverImage} alt="Assessment" className="max-h-64 object-contain rounded-lg shadow-md mx-auto" />
-                    <div className="mt-4 text-center">
-                      <span className="text-xs font-bold text-text-primary bg-bg-secondary px-3 py-1.5 rounded-full shadow-sm border border-black/[0.05]">Click to change image or paste again</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center z-20 pointer-events-none">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-primary-light shadow-inner">
-                      <Upload size={28} />
-                    </div>
-                    <h3 className="text-sm font-black text-text-primary mb-2">Click or Drag Image Here</h3>
-                    <p className="text-[0.72rem] text-text-secondary font-medium">You can also just press <kbd className="bg-black/5 px-1.5 py-0.5 rounded border border-black/10 text-text-primary font-mono text-[0.65rem] mx-1">Ctrl + V</kbd> to paste a screenshot directly</p>
-                  </div>
-                )}
-              </div>
 
-              {/* Action Button */}
-              {solverImage && (
-                <div className="flex justify-center">
-                  <button 
-                    disabled={isSolving}
-                    onClick={async () => {
-                      if (!solverBase64) return;
-                      setIsSolving(true);
-                      setSolverAnswer('');
-                      try {
-                        const token = getCookie('token');
-                        const res = await fetchWithAuth(`${API_BASE_URL}/api/ai/solve-screenshot`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ imageBase64: solverBase64 })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          setSolverAnswer(data.answer);
-                        } else {
-                          setSolverAnswer('Error: ' + (data.message || 'Failed to solve assessment.'));
-                        }
-                      } catch (err) {
-                        setSolverAnswer('Error: ' + err.message);
-                      } finally {
-                        setIsSolving(false);
-                      }
-                    }}
-                    className={`px-8 py-3 text-sm font-black text-white rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 transition-all flex items-center gap-2 ${isSolving ? 'bg-text-tertiary cursor-not-allowed' : 'bg-gradient-to-r from-primary to-accent hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)]'}`}
-                  >
-                    {isSolving ? (
-                      <>Solving Image...</>
-                    ) : (
-                      <><Zap size={16} /> Solve Question</>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* Result Area */}
-              {solverAnswer && (
-                <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 border border-primary/30 rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.1)] relative">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[0.65rem] font-bold uppercase tracking-wider text-primary-light flex items-center gap-1">
-                      <Zap size={14} className="text-accent" /> GhostHire Verified Solution
-                    </span>
-                  </div>
-                  <div className="text-sm text-text-primary whitespace-pre-wrap font-medium">
-                    {solverAnswer}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {activeTab === 'Session History' && (
           <div className="flex-1 p-8 overflow-y-auto bg-transparent">
@@ -1656,16 +1576,16 @@ export default function Dashboard() {
               <Zap size={28} className="text-white" />
             </div>
             
-            <h2 className="text-xl font-black text-text-primary mb-2">Free Allocation Complete</h2>
-            <p className="text-xs text-text-secondary leading-relaxed mb-6 font-semibold px-4">
-              You have completed your **10 minutes** of free speech transcription for today. Upgrade to **Pro Candidate** for uncapped runtime, priority models, and system contextualization.
+            <h2 className="text-xl font-black text-text-primary mb-2">Limit Reached</h2>
+            <p className="text-sm text-text-secondary leading-relaxed mb-6 font-semibold px-4">
+              Your today's quota is exhausted. You have to buy a subscription plan to continue using GhostHire. Upgrade to Pro for unlimited sessions.
             </p>
 
             {/* Premium specs list */}
             <div className="bg-black/[0.02] border border-black/[0.05] rounded-2xl p-5 mb-6 text-left shadow-inner">
               <div className="flex items-center justify-between mb-3 border-b border-black/[0.03] pb-2.5">
                 <span className="text-xs font-black uppercase tracking-wider text-accent">Pro Plan Feature Pack</span>
-                <span className="text-xl font-black text-text-primary">₹1,499<span className="text-xs font-normal text-text-tertiary">/mo</span></span>
+                <span className="text-xl font-black text-text-primary">₹99<span className="text-xs font-normal text-text-tertiary">/mo</span></span>
               </div>
               <ul className="space-y-2 text-xs text-text-secondary font-semibold">
                 <li className="flex items-center gap-2"><span className="text-accent">✓</span> Infinite session lengths and streams</li>
@@ -1683,7 +1603,7 @@ export default function Dashboard() {
               }}
               className="w-full py-3.5 rounded-xl font-black text-white text-xs bg-gradient-to-r from-primary to-accent hover:shadow-[0_4px_25px_rgba(99,102,241,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              UPGRADE PRO — ₹1,499/mo
+              UPGRADE PRO — ₹99/mo
             </button>
             
             <button

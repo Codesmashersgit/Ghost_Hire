@@ -1,8 +1,8 @@
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
+import DemoVideo from '../components/DemoVideo'
 import Features from '../components/Features'
 import HowItWorks from '../components/HowItWorks'
-import Reviews from '../components/Reviews'
 import Privacy from '../components/Privacy'
 import Pricing from '../components/Pricing'
 import FAQ from '../components/FAQ'
@@ -14,9 +14,9 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
+        <DemoVideo />
         <Features />
         <HowItWorks />
-        <Reviews />
         <Privacy />
         <Pricing />
         <FAQ />

@@ -54,16 +54,21 @@ export default function Hero() {
 
           <div className="flex justify-center gap-4 flex-wrap mb-8">
             {isLoggedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="px-8 py-4 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
-                Go to Dashboard <ArrowRight size={16} />
-              </button>
+              <>
+                <button onClick={() => navigate('/dashboard')} className="px-8 py-4 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
+                  Go to Dashboard <ArrowRight size={16} />
+                </button>
+                <button onClick={() => window.open('/release/GhostHire-Windows.exe', '_blank')} className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install Windows App
+                </button>
+              </>
             ) : (
               <>
                 <button onClick={() => navigate('/signup')} className="px-8 py-4 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
                   Start Free Trial <ArrowRight size={16} />
                 </button>
-                <button onClick={() => navigate('/signup')} className="px-8 py-4 text-sm font-bold text-text-primary bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
-                  <Play size={16} className="text-accent" /> Start Demo
+                <button onClick={() => window.open('/release/GhostHire-Windows.exe', '_blank')} className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install Windows App
                 </button>
               </>
             )}
@@ -84,9 +89,9 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.2 }}
         >
           {/* Glass Windows container */}
-          <div className="glass-panel text-left rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(139,92,246,0.15)] border-white/[0.08]">
+          <div className="glass-panel text-left rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(139,92,246,0.15)] border-black/[0.08]">
             {/* Window Header */}
-            <div className="flex items-center gap-3 px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06]">
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-black/[0.02] border-b border-black/[0.06]">
               <div className="flex gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-danger/70 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-warning/70" />
@@ -98,7 +103,7 @@ export default function Hero() {
             {/* Visualizer Area */}
             <div className="p-5 md:p-8 flex flex-col gap-5">
               {/* Interviewer Speech bubble */}
-              <div className="p-5 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+              <div className="p-5 bg-black/[0.02] border border-black/[0.05] rounded-xl">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[0.7rem] font-bold uppercase tracking-wider text-text-tertiary">Interviewer Question</span>
                   <span className="text-[0.65rem] px-2.5 py-0.5 bg-danger/10 border border-danger/20 rounded-full text-danger font-semibold flex items-center gap-1.5">
@@ -140,32 +145,107 @@ export default function Hero() {
           </div>
 
           {/* Floating badges */}
-          <div className="absolute -top-5 -right-5 hidden md:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-success shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float">
+          <div className="absolute -top-5 -right-5 hidden md:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-black/[0.08] rounded-xl text-xs font-bold text-success shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float">
             <Shield size={14} className="text-success" /> 100% Undetectable
           </div>
-          <div className="absolute -bottom-5 -left-5 hidden md:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-white/[0.08] rounded-xl text-xs font-bold text-accent shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float" style={{ animationDelay: '1.2s' }}>
+          <div className="absolute -bottom-5 -left-5 hidden md:flex items-center gap-2 px-4 py-2.5 bg-bg-tertiary/90 border border-black/[0.08] rounded-xl text-xs font-bold text-accent shadow-[0_10px_25px_rgba(0,0,0,0.4)] animate-float" style={{ animationDelay: '1.2s' }}>
             <Zap size={14} className="text-accent" /> Real-time Streaming
           </div>
         </motion.div>
       </div>
 
-      {/* Trusted Logos Bar */}
+      {/* PowerBI / Tableau Style Analytics Dashboard Section */}
       <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        transition={{ delay: 0.6 }} 
-        className="text-center pt-16 pb-4 border-t border-border/30 mt-16 w-full max-w-[1200px] mx-auto px-6 z-10"
+        initial={{ opacity: 0, y: 40 }} 
+        whileInView={{ opacity: 1, y: 0 }} 
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }} 
+        className="w-full max-w-[1200px] mx-auto px-6 py-20 mt-10 border-t border-border/30 relative z-10"
       >
-        <p className="text-[0.65rem] text-text-muted uppercase tracking-[3px] font-bold mb-8">Trusted by candidates interviewing at top tech firms</p>
-        <div className="flex justify-center items-center gap-8 sm:gap-12 flex-wrap">
-          {['Google', 'Amazon', 'Meta', 'Microsoft', 'Apple', 'Netflix'].map((name) => (
-            <span 
-              key={name} 
-              className="text-sm font-black text-text-muted/40 tracking-wider hover:text-primary-light hover:opacity-100 transition-all duration-300"
-            >
-              {name}
-            </span>
-          ))}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-text-primary tracking-tight mb-4">Enterprise-Grade <span className="text-primary">Analytics</span></h2>
+          <p className="text-text-secondary max-w-2xl mx-auto font-medium">Monitor copilot efficiency, real-time transcription speeds, and solution accuracy through our Tableau-inspired graphical interface.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Chart Area */}
+          <div className="lg:col-span-2 bg-white rounded-3xl border border-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-8 flex flex-col">
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h3 className="text-lg font-bold text-text-primary">Performance Trend (Sub-second)</h3>
+                <p className="text-xs text-text-tertiary font-medium">Real-time latency tracking over active session</p>
+              </div>
+              <div className="px-3 py-1 bg-success/10 text-success text-xs font-bold rounded-lg border border-success/20">Active Session</div>
+            </div>
+            
+            {/* Fake Graphical Chart (SVG/Tailwind) */}
+            <div className="flex-1 min-h-[250px] relative w-full flex items-end gap-2">
+              {/* Y-Axis labels */}
+              <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[0.65rem] text-text-muted font-mono pb-8 h-full">
+                <span>1.0s</span>
+                <span>0.5s</span>
+                <span>0.1s</span>
+                <span>0.0s</span>
+              </div>
+              
+              {/* Grid Lines */}
+              <div className="absolute left-8 right-0 top-0 bottom-8 border-b border-black/5 flex flex-col justify-between z-0">
+                <div className="w-full border-b border-black/5 flex-1" />
+                <div className="w-full border-b border-black/5 flex-1" />
+                <div className="w-full border-b border-black/5 flex-1" />
+              </div>
+
+              {/* Bars representing speed */}
+              <div className="ml-10 flex-1 flex items-end justify-between h-[calc(100%-2rem)] z-10 gap-1 pb-[1px]">
+                {[30, 45, 25, 60, 40, 75, 50, 80, 45, 30, 55, 35, 65, 40, 20].map((h, i) => (
+                  <div key={i} className="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm relative group cursor-pointer" style={{ height: `${h}%` }}>
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-text-primary text-white text-[0.6rem] py-1 px-2 rounded font-mono pointer-events-none transition-opacity whitespace-nowrap z-20">
+                      {h * 12}ms
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* X-Axis Labels */}
+              <div className="absolute left-10 right-0 bottom-0 h-6 flex justify-between text-[0.6rem] text-text-muted font-mono pt-2">
+                <span>0m</span>
+                <span>15m</span>
+                <span>30m</span>
+                <span>45m</span>
+                <span>60m</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Metrics Column */}
+          <div className="flex flex-col gap-6">
+            {/* Metric Card 1 */}
+            <div className="bg-white rounded-3xl border border-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Sparkles size={40} className="text-primary" /></div>
+              <h4 className="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-2">Accuracy Rate</h4>
+              <div className="flex items-end gap-2 mb-4">
+                <span className="text-4xl font-extrabold text-text-primary">99.4<span className="text-xl text-text-tertiary font-medium">%</span></span>
+              </div>
+              <div className="w-full bg-black/5 h-2 rounded-full overflow-hidden">
+                <div className="bg-success w-[99.4%] h-full" />
+              </div>
+            </div>
+
+            {/* Metric Card 2 */}
+            <div className="bg-white rounded-3xl border border-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 relative overflow-hidden group flex-1">
+              <h4 className="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-2">Queries Executed</h4>
+              <div className="flex flex-col h-full justify-between">
+                <span className="text-4xl font-extrabold text-text-primary mb-4">12,492</span>
+                
+                {/* Mini area chart simulation */}
+                <div className="h-16 w-full flex items-end gap-1">
+                  {[2, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 12].map((v, i) => (
+                    <div key={i} className="flex-1 bg-gradient-to-t from-primary/30 to-primary/5 rounded-t-sm" style={{ height: `${v * 8}%` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
     </section>

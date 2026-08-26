@@ -1,6 +1,5 @@
-// For Electron desktop app, backend always runs locally on port 5000
-// Change this to your Render URL only if deploying as web app
-export const API_BASE_URL = 'http://localhost:5000';
+// Change this to your actual production deployed backend URL
+export const API_BASE_URL = 'https://ghosthire-backend.onrender.com';
 
 export const API_ENDPOINTS = {
   // Admin

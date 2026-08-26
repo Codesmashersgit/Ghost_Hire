@@ -67,48 +67,50 @@ export default function Overlay() {
   if (!isVisible) return <div style={{ width: "100vw", height: "100vh", backgroundColor: "transparent" }} />;
 
   return (
-    <div style={{ width: "100vw", height: "100vh", backgroundColor: "transparent", padding: "10px", boxSizing: "border-box" }}>
-      <div style={{ backgroundColor: "rgba(10,10,20,0.92)", color: "#e2e8f0", padding: "14px 16px", borderRadius: "14px", width: "100%", height: "100%", display: "flex", flexDirection: "column", boxShadow: "0 8px 32px rgba(0,0,0,0.7)", border: "1px solid rgba(129,140,248,0.3)", boxSizing: "border-box" }}>
+    <div style={{ width: "100vw", height: "100vh", backgroundColor: "transparent", padding: "10px", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+      <div style={{ backgroundColor: "#ffffff", color: "#1e293b", padding: "14px 16px", borderRadius: "14px", width: "100%", height: "100%", display: "flex", flexDirection: "column", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", border: "1px solid rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
         
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "8px", marginBottom: "10px", flexShrink: 0 }}>
+        <div style={{ WebkitAppRegion: "drag", cursor: "grab", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(0,0,0,0.05)", paddingBottom: "8px", marginBottom: "10px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: answerType === 'Code' ? "#f59e0b" : "#4ade80" }} />
-            <span style={{ color: "#818cf8", fontWeight: "bold", fontSize: "12px" }}>AI COPILOT {answerType ? `— ${answerType.toUpperCase()}` : ''}</span>
+            <span style={{ color: "#475569", fontWeight: "bold", fontSize: "12px" }}>AI COPILOT {answerType ? `— ${answerType.toUpperCase()}` : ''} (Drag me)</span>
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {answerType === 'Theory' && (
-              <button onClick={handleGetCode} style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", color: "#fcd34d", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "bold" }}>
-                GET CODE
-              </button>
-            )}
-            <button onClick={handleCopy} style={{ background: copied ? "rgba(74,222,128,0.2)" : "rgba(129,140,248,0.15)", border: `1px solid ${copied ? "rgba(74,222,128,0.5)" : "rgba(129,140,248,0.3)"}`, color: copied ? "#4ade80" : "#818cf8", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "bold" }}>
-              {copied ? "COPIED!" : "COPY ALL"}
-            </button>
-            <span style={{ fontSize: "9px", opacity: 0.4, color: "#94a3b8" }}>Ctrl+Shift+Z=hide</span>
-          </div>
+          <span style={{ fontSize: "9px", opacity: 0.6, color: "#64748b", WebkitAppRegion: "no-drag" }}>Ctrl+Shift+Z to hide</span>
         </div>
 
         {/* Scrollable Content */}
-        <div ref={scrollRef} style={{ overflowY: "auto", flex: 1, fontFamily: "Consolas, monospace", fontSize: "12.5px", lineHeight: "1.7", paddingRight: "4px", scrollbarWidth: "thin", scrollbarColor: "rgba(129,140,248,0.3) transparent" }}>
+        <div ref={scrollRef} style={{ overflowY: "auto", flex: 1, fontFamily: "Consolas, monospace", fontSize: "13px", lineHeight: "1.7", paddingRight: "4px", scrollbarWidth: "thin", scrollbarColor: "rgba(0,0,0,0.2) transparent" }}>
           <ReactMarkdown
             components={{
-              strong({ children }) { return <strong style={{ color: "#a78bfa", fontWeight: 700 }}>{children}</strong>; },
+              strong({ children }) { return <strong style={{ color: "#0f172a", fontWeight: 700 }}>{children}</strong>; },
               code({ node, inline, className, children, ...props }) {
-                if (inline) return <code style={{ backgroundColor: "rgba(167,139,250,0.15)", color: "#c4b5fd", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }} {...props}>{children}</code>;
-                return <code style={{ color: "#c4b5fd" }} {...props}>{children}</code>;
+                if (inline) return <code style={{ backgroundColor: "rgba(0,0,0,0.05)", color: "#334155", padding: "2px 6px", borderRadius: "4px", fontSize: "12px" }} {...props}>{children}</code>;
+                return <code style={{ color: "#334155" }} {...props}>{children}</code>;
               },
-              pre({ node, children, ...props }) { return <pre style={{ backgroundColor: "rgba(0,0,0,0.6)", padding: "10px 12px", borderRadius: "8px", overflowX: "auto", border: "1px solid rgba(129,140,248,0.2)", fontSize: "11.5px", lineHeight: "1.5", margin: "8px 0", whiteSpace: "pre-wrap", wordBreak: "break-word" }} {...props}>{children}</pre>; },
-              h1({ children }) { return <h1 style={{ color: "#818cf8", fontSize: "14px", margin: "8px 0 4px" }}>{children}</h1>; },
-              h2({ children }) { return <h2 style={{ color: "#a78bfa", fontSize: "13px", margin: "8px 0 4px" }}>{children}</h2>; },
-              h3({ children }) { return <h3 style={{ color: "#c4b5fd", fontSize: "12px", margin: "6px 0 3px" }}>{children}</h3>; },
-              hr() { return <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", margin: "10px 0" }} />; },
-              li({ children }) { return <li style={{ marginBottom: "4px", color: "#cbd5e1" }}>{children}</li>; },
-              p({ children }) { return <p style={{ margin: "6px 0", color: "#e2e8f0" }}>{children}</p>; },
+              pre({ node, children, ...props }) { return <pre style={{ backgroundColor: "#f8fafc", padding: "10px 12px", borderRadius: "8px", overflowX: "auto", border: "1px solid rgba(0,0,0,0.05)", fontSize: "12px", lineHeight: "1.5", margin: "8px 0", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#1e293b" }} {...props}>{children}</pre>; },
+              h1({ children }) { return <h1 style={{ color: "#0f172a", fontSize: "16px", margin: "12px 0 6px" }}>{children}</h1>; },
+              h2({ children }) { return <h2 style={{ color: "#1e293b", fontSize: "14px", margin: "10px 0 4px" }}>{children}</h2>; },
+              h3({ children }) { return <h3 style={{ color: "#334155", fontSize: "13px", margin: "8px 0 3px" }}>{children}</h3>; },
+              hr() { return <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.05)", margin: "10px 0" }} />; },
+              li({ children }) { return <li style={{ marginBottom: "4px", color: "#334155" }}>{children}</li>; },
+              p({ children }) { return <p style={{ margin: "6px 0", color: "#334155" }}>{children}</p>; },
             }}
           >
             {answer}
           </ReactMarkdown>
+        </div>
+
+        {/* Footer Buttons */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid rgba(0,0,0,0.05)", flexShrink: 0 }}>
+          {answerType === 'Theory' && (
+            <button onClick={handleGetCode} style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#d97706", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "bold" }}>
+              GET CODE
+            </button>
+          )}
+          <button onClick={handleCopy} style={{ background: copied ? "#f0fdf4" : "#f1f5f9", border: `1px solid ${copied ? "#bbf7d0" : "#e2e8f0"}`, color: copied ? "#16a34a" : "#475569", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "bold" }}>
+            {copied ? "COPIED!" : "COPY ALL"}
+          </button>
         </div>
       </div>
     </div>

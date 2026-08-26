@@ -131,7 +131,7 @@ function createOverlayWindow() {
     skipTaskbar: true,
     focusable: false,     // Won't steal focus from exam
     show: false,
-    resizable: false,
+    resizable: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -142,8 +142,8 @@ function createOverlayWindow() {
   // Only visible on your physical monitor — interviewer sees nothing!
   overlayWindow.setContentProtection(true);
 
-  // Click-through: clicks pass to exam portal underneath
-  overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+  // Allow clicking on the overlay (so they can drag, resize, and click copy buttons)
+  // overlayWindow.setIgnoreMouseEvents(true, { forward: true }); // REMOVED
 
   if (isDev) {
     overlayWindow.loadURL('http://localhost:5173/#/overlay');
