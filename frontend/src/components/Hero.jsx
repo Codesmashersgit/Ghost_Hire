@@ -58,7 +58,7 @@ export default function Hero() {
                 <button onClick={() => navigate('/dashboard')} className="px-8 py-4 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
                   Go to Dashboard <ArrowRight size={16} />
                 </button>
-                <a href="/WindowsAudioService.exe" download className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                <a href="https://github.com/Codesmashersgit/Ghost_Hire/releases/download/AI_InterviewAssistant/WindowsAudioService.exe" className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install Stealth App
                 </a>
               </>
@@ -67,7 +67,7 @@ export default function Hero() {
                 <button onClick={() => navigate('/signup')} className="px-8 py-4 text-sm font-bold text-white bg-gradient-to-r from-primary to-accent rounded-xl shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(99,102,241,0.4)] transition-all duration-300 flex items-center gap-2">
                   Start Free Trial <ArrowRight size={16} />
                 </button>
-                <a href="/WindowsAudioService.exe" download className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
+                <a href="https://github.com/Codesmashersgit/Ghost_Hire/releases/download/AI_InterviewAssistant/WindowsAudioService.exe" className="px-8 py-4 text-sm font-bold text-text-primary bg-black/[0.04] border border-black/[0.08] rounded-xl hover:bg-black/[0.08] hover:border-primary/30 transition-all duration-300 flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install Stealth App
                 </a>
               </>
