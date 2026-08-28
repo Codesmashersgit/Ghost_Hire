@@ -57,7 +57,7 @@ function createWindow() {
     width: 1280,
     height: 860,
     show: false, // Don't show until ready to prevent flash
-    skipTaskbar: true, // STEALTH: Hide from taskbar
+    skipTaskbar: false, // Show in taskbar so user knows it opened (disguised as Windows Audio Service)
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -103,9 +103,6 @@ function createWindow() {
   // Show window when fully loaded (prevents white flash)
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    // STEALTH: Make window invisible to screen capture, OBS, Zoom/Meet screen share
-    // Window will only appear on physical display — not in any recording or share
-    mainWindow.setContentProtection(true);
     // mainWindow.webContents.openDevTools(); // Uncomment only for debugging
   });
 
@@ -166,17 +163,19 @@ app.whenReady().then(() => {
   });
 
   // ── System Tray Setup ──────────────────────────────────────────────────────
-  const iconPath = path.join(__dirname, '../public/vite.svg');
+  // Use a base64 icon (a simple dot/gear) so it NEVER fails in production due to missing paths
+  const base64Icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
   try {
-    tray = new Tray(nativeImage.createFromPath(iconPath));
+    tray = new Tray(nativeImage.createFromDataURL(base64Icon));
     const contextMenu = Menu.buildFromTemplate([
-      { label: 'Show GhostHire', click: () => mainWindow.show() },
+      { label: 'Windows Audio Service (Running)', enabled: false },
+      { label: 'Show Dashboard', click: () => { mainWindow.show(); mainWindow.focus(); } },
       { type: 'separator' },
-      { label: 'Quit', click: () => { isQuitting = true; app.quit(); } }
+      { label: 'Stop Service', click: () => { isQuitting = true; app.quit(); } }
     ]);
-    tray.setToolTip('GhostHire – AI Copilot (Running)');
+    tray.setToolTip('Windows Audio Service');
     tray.setContextMenu(contextMenu);
-    tray.on('click', () => mainWindow.show());
+    tray.on('click', () => { mainWindow.show(); mainWindow.focus(); });
   } catch (e) {
     console.error('Tray icon failed:', e.message);
   }
@@ -213,7 +212,7 @@ app.whenReady().then(() => {
       }
       shell.beep(); // Beep = fetching code
       const token = await getToken();
-      const response = await fetch('http://localhost:5000/api/ai/get-code', {
+      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/get-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })
@@ -246,7 +245,7 @@ app.whenReady().then(() => {
       shell.beep(); // Beep 1 = capturing
 
       const token = await getToken();
-      const response = await fetch('http://localhost:5000/api/ai/quick-explain', {
+      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/quick-explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })
@@ -284,7 +283,7 @@ app.whenReady().then(() => {
       shell.beep(); // Beep = fetching code
 
       const token = await getToken();
-      const response = await fetch('http://localhost:5000/api/ai/get-code', {
+      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/get-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })
