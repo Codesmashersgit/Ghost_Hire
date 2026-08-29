@@ -60,7 +60,7 @@ function createWindow() {
     width: 1280,
     height: 860,
     show: false, // Don't show until ready to prevent flash
-    skipTaskbar: false, // Show in taskbar so user knows it opened (disguised as Windows Audio Service)
+    skipTaskbar: true, // STEALTH: Hide from taskbar
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -215,7 +215,7 @@ app.whenReady().then(() => {
       }
       shell.beep(); // Beep = fetching code
       const token = await getToken();
-      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/get-code', {
+      const response = await fetch('http://localhost:5000/api/ai/get-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })
@@ -248,7 +248,7 @@ app.whenReady().then(() => {
       shell.beep(); // Beep 1 = capturing
 
       const token = await getToken();
-      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/quick-explain', {
+      const response = await fetch('http://localhost:5000/api/ai/quick-explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })
@@ -286,7 +286,7 @@ app.whenReady().then(() => {
       shell.beep(); // Beep = fetching code
 
       const token = await getToken();
-      const response = await fetch('https://ghosthire-backend.onrender.com/api/ai/get-code', {
+      const response = await fetch('http://localhost:5000/api/ai/get-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ imageBase64: lastScreenshot })

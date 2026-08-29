@@ -1,5 +1,5 @@
 // Change this to your actual production deployed backend URL
-export const API_BASE_URL = 'https://ghosthire-backend.onrender.com';
+export const API_BASE_URL = 'http://localhost:5000';
 
 export const API_ENDPOINTS = {
   // Admin
