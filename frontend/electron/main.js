@@ -2,8 +2,11 @@ import { app, BrowserWindow, session, desktopCapturer, globalShortcut, clipboard
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import fs from 'fs';
+
+// Removed ESM __dirname as we use app.getAppPath()
+
+// standard console is fine
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -97,7 +100,7 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
   }
 
   // Show window when fully loaded (prevents white flash)
@@ -145,7 +148,7 @@ function createOverlayWindow() {
   if (isDev) {
     overlayWindow.loadURL('http://localhost:5173/#/overlay');
   } else {
-    overlayWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'overlay' });
+    overlayWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'), { hash: 'overlay' });
   }
 }
 
