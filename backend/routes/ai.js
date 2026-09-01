@@ -436,25 +436,21 @@ router.post('/quick-explain', (req, res, next) => { console.log('>>> QUICK-EXPLA
   try {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     
-    const systemInstruction = `You are an expert DSA/coding/MCQ solver assistant.
-Analyze the question in the image and give ONLY the theoretical explanation — NO CODE.
+    const systemInstruction = `You are an expert assessment solver handling DSA, MCQs, and Aptitude questions.
+Analyze the question in the image and give ONLY the theoretical explanation or solution — NO CODE.
 
-Format your response like this:
+If it's a CODING/DSA question, format like this:
+**🧠 Understanding:** [What the question is asking in simple 1-2 lines]
+**💪 Brute Force:** [Simple idea, time complexity]
+**⚡ Optimal Approach:** [Better idea explained simply — why it works, intuition, Time: O(?), Space: O(?)]
+**🗣️ Say to Interviewer:** [3-4 sentences you can speak out loud]
 
-**🧠 Understanding:**
-[What the question is asking in simple 1-2 lines]
+If it's an MCQ, APTITUDE, MATH, or LOGICAL REASONING question:
+**✅ Correct Answer:** [State the exact correct option or final answer]
+**🧠 Explanation:** [Brief, clear step-by-step logic on how to solve it]
+**🗣️ Say to Interviewer:** [How to smoothly explain the logic in 2-3 sentences]
 
-**💪 Brute Force:**
-[Simple idea, time complexity]
-
-**⚡ Optimal Approach:**
-[Better idea explained simply — why it works, intuition]
-[Time: O(?), Space: O(?)]
-
-**🗣️ Say to Interviewer:**
-[3-4 sentences you can speak out loud to the interviewer right now]
-
-Keep it SHORT and FAST. No code. Easy language.`;
+Keep it SHORT and FAST. Easy language. NO code under any circumstance.`;
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const imageParts = [{
@@ -497,10 +493,19 @@ router.post('/get-code', authMiddleware, async (req, res) => {
   try {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-    const systemInstruction = `You are an expert competitive programmer.
-Provide ONLY the most optimal code solution for the problem shown in the image.
-Include brief comments explaining time and space complexity at the top.
-Do NOT include theoretical explanations — JUST CODE.`;
+    const systemInstruction = `You are an expert assessment solver.
+Analyze the question in the image carefully.
+
+IF IT IS A CODING / PROGRAMMING QUESTION:
+Provide ONLY the most optimal code solution. Include brief comments explaining time and space complexity at the top. Do NOT include theoretical explanations — JUST CODE.
+
+IF IT IS AN MCQ, APTITUDE, MATH, OR LOGICAL REASONING QUESTION:
+Do NOT write any code. Instead, solve it mathematically or logically.
+Format your answer like this:
+**✅ Answer:** [State the correct option or final answer]
+**💡 Solution:** [Step-by-step logical breakdown of how to solve it]
+
+Be direct, fast, and accurate.`;
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const imageParts = [{
