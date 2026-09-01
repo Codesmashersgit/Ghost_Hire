@@ -37,6 +37,9 @@ const GROQ_MODELS = [
   'groq/compound',
   'openai/gpt-oss-120b',
   'qwen/qwen3.8-27b',
+  'qwen/qwen3.6-27b',
+  'openai/gpt-oss-20b',
+  'allam-2-7b',
   'groq/compound-mini'
 ];
 
@@ -44,8 +47,8 @@ const GROQ_MODELS = [
 const GEMINI_MODELS = [
   'gemini-3.7-flash',
   'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-2.5-flash',
+  'gemini-3.5-pro',
+  'gemini-3.0-flash',
   'gemini-2.5-pro'
 ];
 
@@ -633,11 +636,6 @@ Analyze the screenshot and solve the question instantly:
 Format output cleanly. Be concise. No greetings, no filler. Just the answer.`;
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const geminiModel = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      systemInstruction,
-    });
-
     const imageParts = [{
       inlineData: {
         data: base64Data,
@@ -645,12 +643,20 @@ Format output cleanly. Be concise. No greetings, no filler. Just the answer.`;
       }
     }];
 
-    const result = await geminiModel.generateContent([
-      "Solve the question in the screenshot.", 
-      ...imageParts
-    ]);
-    const response = await result.response;
-    let answer = response.text().trim();
+    const promises = GEMINI_MODELS.map(async (modelName) => {
+      console.log(`[Solve Screenshot] Racing model: ${modelName}`);
+      const geminiModel = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+      });
+      const result = await geminiModel.generateContent([
+        "Solve the question in the screenshot.", 
+        ...imageParts
+      ]);
+      return (await result.response).text().trim();
+    });
+
+    let answer = await Promise.any(promises);
 
     if (answer.startsWith('```') && answer.endsWith('```')) {
       const lines = answer.split('\n');
