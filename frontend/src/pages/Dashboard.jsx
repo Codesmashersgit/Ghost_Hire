@@ -469,8 +469,8 @@ export default function Dashboard() {
       
       startVisualizer(stream);
 
-      const langMap = { 'English': 'en', 'Hindi': 'hi', 'German': 'de', 'French': 'fr', 'Japanese': 'ja' };
-      const langCode = langMap[selectedLang] || 'en';
+      const langMap = { 'English': 'en-IN', 'Hindi': 'hi', 'German': 'de', 'French': 'fr', 'Japanese': 'ja' };
+      const langCode = langMap[selectedLang] || 'en-IN';
 
       // Connect securely via backend proxy to hide Deepgram API Key
       // Use backend URL from config, not frontend URL
