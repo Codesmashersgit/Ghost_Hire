@@ -71,6 +71,9 @@ function createWindow() {
     }
   });
 
+  // STEALTH: Prevent window from appearing in screenshots, screen shares, and OBS
+  mainWindow.setContentProtection(true);
+
   // Re-apply permission handlers specifically to THIS window's session too
   // (in case the window uses a different partition)
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
