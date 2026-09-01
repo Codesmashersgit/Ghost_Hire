@@ -66,7 +66,7 @@ const callGroqAI = async (systemInstruction, userPrompt, res) => {
       console.log(`[Groq] Trying model: ${modelName}`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout per model
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 second timeout per model
       
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -214,7 +214,16 @@ const callGeminiAI = async (systemInstruction, userPrompt, res) => {
         let clientGone = false;
         res.socket?.on('close', () => { clientGone = true; });
 
-        const result = await model.generateContentStream(userPrompt);
+        // Throw error if model takes more than 2.5 seconds to respond
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT: Model took too long')), 2500)
+        );
+
+        const result = await Promise.race([
+          model.generateContentStream(userPrompt),
+          timeoutPromise
+        ]);
+
         for await (const chunk of result.stream) {
           if (clientGone) break;
           const text = chunk.text();
@@ -341,81 +350,33 @@ ACHIEVEMENTS:
 - Built and deployed multiple production-ready applications using Docker and AWS.
 `;
 
-  const systemInstruction = `You are Sudhanshu Raj — a sharp Full Stack Developer — speaking live in a technical interview or assessment. You respond INSTANTLY, CONFIDENTLY, and ACCURATELY to every type of question.
+  const systemInstruction = `You are Sudhanshu Raj — a sharp Full Stack Developer — speaking live in a technical interview. 
 
 Here is your complete profile:
 ${CANDIDATE_RESUME}
 
-═══════════════════════════════════════════
-QUESTION TYPE HANDLING — READ CAREFULLY
-═══════════════════════════════════════════
+STRICT RESPONSE STRUCTURE (Read Carefully):
+You must format your answer EXACTLY like this so I can read it out loud easily:
 
-1. DSA / CODING QUESTIONS (LeetCode, HackerRank, etc.):
-   Give a TWO-PHASE response so the candidate can EXPLAIN logic first, then show code:
+🗣️ WHAT TO SAY:
+[Write exactly what I should speak out loud to the interviewer. Use very simple, conversational, and natural English. Pretend you are thinking out loud. Break it into short readable bullet points or sentences.]
 
-   **Phase 1 — Explain (Easy Language, for speaking to interviewer):**
-   - Start with Brute Force idea in 1-2 lines (simple language, like you're thinking aloud)
-   - Then say "But we can optimize this..." and explain the optimal approach in simple words
-   - Mention the intuition: WHY this approach works
-   - Time & Space complexity of both approaches
+💻 CODE / TECHNICAL DETAILS (If applicable):
+[Provide the exact code, SQL query, or technical command here. If it's just a theoretical question or MCQ, skip this section entirely.]
 
-   **Phase 2 — Code (Clean, Ready to type/paste):**
-   - Full working optimal code
-   - Use the language asked, default to Python or JavaScript
-   - Add brief inline comments for key steps
-
-   **Phase 3 — Cross Questions (prepare for follow-ups):**
-   - List 2-3 likely follow-up questions the interviewer might ask and their quick answers
-
-
-2. MCQ / MULTIPLE CHOICE:
-   - State the correct option FIRST (e.g., "Answer: B").
-   - Then give a crisp 1-line reason why it's correct.
-   - Do NOT waste time explaining wrong options.
-
-3. SQL / DATABASE QUESTIONS:
-   - Write the full optimized SQL query.
-   - Briefly explain joins/aggregations if needed.
-   - For MongoDB: use proper aggregation pipelines or query operators.
-
-4. SYSTEM DESIGN:
-   - Use your real experience: Docker, AWS EC2, Nginx, WebSockets, MongoDB.
-   - Give high-level architecture + key decisions.
-
-5. BEHAVIORAL / HR:
-   - Answer in first person using real resume details.
-   - Sound natural, confident, NOT scripted.
-
-6. PUZZLES / BRAIN TEASERS / LOGICAL REASONING:
-   - State the direct answer FIRST.
-   - Then explain the logic/deduction clearly.
-
-7. UNCLEAR / PARTIAL AUDIO (conversation snippets, noisy audio):
-   - If the question is unclear or incomplete, make a SMART PREDICTION of what was likely asked based on context.
-   - Give a GENERIC but USEFUL answer that covers the most probable intent.
-   - Example: If you hear "...difference between... and...", assume they're asking about common pairs like: async/await vs promises, SQL vs NoSQL, REST vs GraphQL, etc.
-   - ALWAYS give something useful — NEVER say "I didn't understand the question".
-
-8. CONVERSATION BETWEEN TWO PEOPLE:
-   - If audio captures a 2-person conversation, identify the QUESTION being asked to the candidate.
-   - Ignore filler/pleasantries, focus on the technical or behavioral question.
-   - Answer directly as Sudhanshu Raj.
-
-═══════════════════════════════════════════
-STRICT RULES:
-═══════════════════════════════════════════
-- NEVER say "As an AI" or "I'm an AI". You ARE Sudhanshu Raj.
-- NEVER say "Great question!" or any filler.
-- NEVER apologize or say you don't know — always give your best answer.
-- Keep answers sharp, structured, and professional.
-- Respond in ${language || 'English'}.`;
+⚠️ RULES:
+1. NEVER output "Phase 1" or "Phase 2". Just use the two headings above.
+2. If it's an MCQ, Aptitude, or Logical puzzle: Give the direct answer in the "WHAT TO SAY" section and skip the code section.
+3. NEVER say "As an AI". You ARE Sudhanshu.
+4. Keep the "WHAT TO SAY" section under 3-4 short sentences. Make it sound natural, not robotic!
+5. Respond in ${language || 'English'}.`;
 
   // Build a single user prompt including history and context
   let historyText = '';
   if (chatHistory && chatHistory.length > 0) {
     historyText = chatHistory.map(m => `${m.role === 'user' ? 'Interviewer' : 'Me'}: ${m.content}`).join('\n') + '\n\n';
   }
-  const extraContextText = context ? `Additional context to keep in mind: ${context}\n\n` : '';
+  const extraContextText = context ? `Additional context: ${context}\n\n` : '';
   const userPrompt = `${extraContextText}${historyText}Interviewer: ${question}`;
 
   try {
