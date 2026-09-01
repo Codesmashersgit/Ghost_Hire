@@ -64,8 +64,13 @@ const callGroqAI = async (systemInstruction, userPrompt, res) => {
     const modelName = GROQ_MODELS[i];
     try {
       console.log(`[Groq] Trying model: ${modelName}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout per model
+      
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GROQ_API_KEY}`
@@ -79,6 +84,7 @@ const callGroqAI = async (systemInstruction, userPrompt, res) => {
           ]
         })
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -146,8 +152,12 @@ const callGroqAIText = async (systemInstruction, userPrompt) => {
   for (let i = 0; i < GROQ_MODELS.length; i++) {
     const modelName = GROQ_MODELS[i];
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GROQ_API_KEY}`
@@ -160,6 +170,7 @@ const callGroqAIText = async (systemInstruction, userPrompt) => {
           ]
         })
       });
+      clearTimeout(timeoutId);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error?.message || `HTTP ${response.status}`);
@@ -408,14 +419,14 @@ STRICT RULES:
   const userPrompt = `${extraContextText}${historyText}Interviewer: ${question}`;
 
   try {
-    console.log('[Chat] Attempting Groq primary...');
-    await callGroqAI(systemInstruction, userPrompt, res);
+    console.log('[Chat] Attempting Gemini primary...');
+    await callGeminiAI(systemInstruction, userPrompt, res);
   } catch (error) {
-    console.error('[Chat] Groq failed, falling back to Gemini:', error.message);
+    console.error('[Chat] Gemini failed, falling back to Groq:', error.message);
     try {
-      await callGeminiAI(systemInstruction, userPrompt, res);
-    } catch (geminiError) {
-      console.error('[Chat] Gemini also failed:', geminiError.message);
+      await callGroqAI(systemInstruction, userPrompt, res);
+    } catch (groqError) {
+      console.error('[Chat] Groq also failed:', groqError.message);
       if (!res.headersSent) {
         res.status(500).json({ success: false, message: 'All AI services failed' });
       } else {
