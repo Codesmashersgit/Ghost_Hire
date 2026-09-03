@@ -12,6 +12,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
 let overlayWindow = null;
+let micOverlayWindow = null;
 let tray = null;
 let isQuitting = false;
 
@@ -123,16 +124,16 @@ function createWindow() {
 
 function createOverlayWindow() {
   overlayWindow = new BrowserWindow({
-    width: 480,           // Compact width — fits on side without blocking exam
-    height: 700,          // Tall enough to show full answer
-    x: 10,               // Left side of screen
-    y: 80,               // Small gap from top
+    width: 600,           // Larger width
+    height: 800,          // Larger height
+    x: 10,
+    y: 80,
     transparent: true,
     backgroundColor: '#00000000',
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    focusable: false,     // Won't steal focus from exam
+    focusable: false, // Prevents stealing focus from the exam
     show: false,
     resizable: true,
     webPreferences: {
@@ -140,6 +141,9 @@ function createOverlayWindow() {
       contextIsolation: false,
     }
   });
+
+  // Keep aggressively on top for the main overlay as well
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
 
   // CRITICAL: Invisible to Zoom/Meet screen share, OBS, screen recording
   // Only visible on your physical monitor — interviewer sees nothing!
@@ -155,10 +159,43 @@ function createOverlayWindow() {
   }
 }
 
+function createMicOverlayWindow() {
+  micOverlayWindow = new BrowserWindow({
+    width: 600,
+    height: 800,
+    x: 200,
+    y: 80,
+    transparent: true,
+    backgroundColor: '#00000000',
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false, // Prevents stealing focus from Internshala
+    show: false,
+    resizable: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    }
+  });
+
+  // Keep it aggressively on top of even full-screen lock browsers
+  micOverlayWindow.setAlwaysOnTop(true, 'screen-saver');
+
+  micOverlayWindow.setContentProtection(true);
+
+  if (isDev) {
+    micOverlayWindow.loadURL('http://localhost:5173/#/mic-overlay');
+  } else {
+    micOverlayWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'), { hash: 'mic-overlay' });
+  }
+}
+
 
 app.whenReady().then(() => {
   createWindow();
   createOverlayWindow();
+  createMicOverlayWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -196,15 +233,29 @@ app.whenReady().then(() => {
     } catch { return ''; }
   };
 
-  // Helper: show answer in overlay + copy to clipboard
   const showInOverlay = (text, label) => {
-    clipboard.writeText(text);
-    shell.beep();
+    const isStreaming = label && label.includes('Streaming');
+    
+    if (!isStreaming) {
+      clipboard.writeText(text);
+      shell.beep();
+    }
+    
     if (overlayWindow) {
       overlayWindow.webContents.send('show-answer', text, label);
-      overlayWindow.showInactive();
+      if (!isStreaming && (!micOverlayWindow || !micOverlayWindow.isVisible())) {
+        overlayWindow.showInactive();
+      }
     }
-    console.log(`[Shortcut] ${label} shown in overlay`);
+    if (micOverlayWindow) {
+      micOverlayWindow.webContents.send('show-mic-answer', text);
+      if (!isStreaming && !micOverlayWindow.isVisible()) {
+        micOverlayWindow.showInactive();
+      }
+    }
+    if (!isStreaming) {
+      console.log(`[Shortcut] ${label} shown in overlay`);
+    }
   };
 
   // Listen for GET CODE click from the overlay
@@ -319,6 +370,57 @@ app.whenReady().then(() => {
     if (overlayWindow && overlayWindow.isVisible()) {
       overlayWindow.hide();
     }
+  });
+
+  // ── Global Shortcut: Ctrl+Shift+M → Toggle Mic Overlay ────────────────────
+  globalShortcut.register('CommandOrControl+Shift+M', () => {
+    if (micOverlayWindow) {
+      if (micOverlayWindow.isVisible()) {
+        micOverlayWindow.hide();
+      } else {
+        micOverlayWindow.showInactive();
+      }
+    }
+  });
+
+  // ── Mic IPC handling ──────────────────────────────────────────────────────
+  let currentMicStatus = false;
+  
+  ipcMain.on('toggle-mic-from-overlay', (event, status) => {
+    currentMicStatus = status;
+    if (mainWindow) {
+      mainWindow.webContents.send('toggle-mic', status);
+    }
+  });
+
+  ipcMain.on('send-manual-message', (event, text) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('manual-message-from-overlay', text);
+    }
+  });
+
+  ipcMain.on('broadcast-live-transcript', (event, text) => {
+    if (micOverlayWindow) {
+      micOverlayWindow.webContents.send('live-transcript', text);
+    }
+  });
+
+  ipcMain.on('sync-mic-status-from-main', (event, status) => {
+    currentMicStatus = status;
+    if (micOverlayWindow) {
+      micOverlayWindow.webContents.send('sync-mic-status', status);
+    }
+    if (overlayWindow) {
+      overlayWindow.webContents.send('sync-mic-status', status);
+    }
+  });
+
+  ipcMain.on('get-mic-status', (event) => {
+    event.reply('sync-mic-status', currentMicStatus);
+  });
+
+  ipcMain.on('show-answer-in-overlay', (event, text, label) => {
+    showInOverlay(text, label || 'Audio Answer');
   });
 });
 

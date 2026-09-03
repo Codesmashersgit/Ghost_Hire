@@ -5,11 +5,14 @@ import Dashboard from './pages/Dashboard'
 import Signup from './pages/Signup'
 import Signin from './pages/Signin'
 import AdminDashboard from './pages/AdminDashboard'
+import MicOverlay from './pages/MicOverlay'
 
 function App() {
   console.log('App component rendering');
   
-  // Directly render Overlay if URL indicates it (bypasses BrowserRouter issues in Electron file:// protocol)
+  if (window.location.href.includes('mic-overlay')) {
+    return <MicOverlay />;
+  }
   if (window.location.href.includes('overlay')) {
     return <Overlay />;
   }

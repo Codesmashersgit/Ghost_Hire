@@ -12,6 +12,13 @@ const FALLBACK_MODELS = [
   "Phi-3-medium-128k-instruct"
 ];
 
+const isElectron = window && window.process && window.process.type;
+let ipcRenderer = null;
+if (isElectron) {
+  const electron = window.require("electron");
+  ipcRenderer = electron.ipcRenderer;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [isSessionActive, setIsSessionActive] = useState(false)
@@ -95,7 +102,31 @@ export default function Dashboard() {
   const isListeningRef = useRef(isListening)
   useEffect(() => {
     isListeningRef.current = isListening;
+    if (ipcRenderer) {
+      ipcRenderer.send('sync-mic-status-from-main', isListening);
+    }
   }, [isListening])
+
+  const handleFinalTranscriptRef = useRef(null);
+
+  useEffect(() => {
+    if (ipcRenderer) {
+      const handleToggle = (event, status) => {
+        setIsListening(status);
+      };
+      const handleManualMsg = (event, text) => {
+        if (text && handleFinalTranscriptRef.current) {
+          handleFinalTranscriptRef.current(text);
+        }
+      };
+      ipcRenderer.on('toggle-mic', handleToggle);
+      ipcRenderer.on('manual-message-from-overlay', handleManualMsg);
+      return () => {
+        ipcRenderer.removeListener('toggle-mic', handleToggle);
+        ipcRenderer.removeListener('manual-message-from-overlay', handleManualMsg);
+      };
+    }
+  }, []);
 
   const isSessionActiveRef = useRef(isSessionActive)
   useEffect(() => {
@@ -514,7 +545,9 @@ export default function Dashboard() {
             accumulatedSpeechRef.current = accumulatedSpeechRef.current
               ? `${accumulatedSpeechRef.current} ${cleanedText}`
               : cleanedText;
-            setLiveTranscript(`🎙️ "${accumulatedSpeechRef.current}"`);
+            const fullTx = `🎙️ "${accumulatedSpeechRef.current}"`;
+            setLiveTranscript(fullTx);
+            if (ipcRenderer) ipcRenderer.send('broadcast-live-transcript', fullTx);
             
             if (sendTimeoutRef.current) clearTimeout(sendTimeoutRef.current);
             sendTimeoutRef.current = setTimeout(() => {
@@ -522,10 +555,12 @@ export default function Dashboard() {
                 handleFinalTranscript(accumulatedSpeechRef.current.trim());
                 accumulatedSpeechRef.current = '';
                 setLiveTranscript('');
+                if (ipcRenderer) ipcRenderer.send('broadcast-live-transcript', '');
               }
-            }, 800);
+            }, 400); // Reduced from 800 to 400 for FASTER response
           } else {
             setLiveTranscript(cleanedText);
+            if (ipcRenderer) ipcRenderer.send('broadcast-live-transcript', cleanedText);
             setManualInput(prev => {
               const joined = prev ? `${prev} ${cleanedText}` : cleanedText;
               setSpeechNotification(joined);
@@ -533,7 +568,9 @@ export default function Dashboard() {
             });
           }
         } else if (transcript) {
-          setLiveTranscript(`🎙️ ${transcript}`);
+          const partial = `🎙️ ${transcript}...`;
+          setLiveTranscript(partial);
+          if (ipcRenderer) ipcRenderer.send('broadcast-live-transcript', partial);
         }
       };
 
@@ -749,6 +786,10 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    handleFinalTranscriptRef.current = handleFinalTranscript;
+  });
+
   const handleFinalTranscript = async (text) => {
     // Clear old suggestions and generate new ones
     setSuggestions([]);
@@ -817,10 +858,17 @@ export default function Dashboard() {
             try {
               const data = JSON.parse(dataStr);
               const content = data.choices?.[0]?.delta?.content || '';
-              accumulatedText += content;
-              setMessages(prev => prev.map(msg =>
-                msg.id === aiMessageId ? { ...msg, text: accumulatedText } : msg
-              ));
+              if (content) {
+                accumulatedText += content;
+                setMessages(prev => prev.map(msg =>
+                  msg.id === aiMessageId ? { ...msg, text: accumulatedText } : msg
+                ));
+                
+                // Stream live to overlay
+                if (ipcRenderer) {
+                  ipcRenderer.send('show-answer-in-overlay', accumulatedText, 'Copilot Answer (Streaming...)');
+                }
+              }
             } catch (_) { /* skip malformed JSON chunks */ }
           }
         }
@@ -829,6 +877,10 @@ export default function Dashboard() {
       setMessages(prev => prev.map(msg =>
         msg.id === aiMessageId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
       ));
+
+      if (ipcRenderer) {
+        ipcRenderer.send('show-answer-in-overlay', accumulatedText, 'Copilot Answer');
+      }
 
       chatHistoryRef.current.push({ role: 'user', content: text });
       chatHistoryRef.current.push({ role: 'assistant', content: accumulatedText });
@@ -842,6 +894,10 @@ export default function Dashboard() {
         msg.id === aiMessageId ? { ...msg, text: standaloneResponse, isStreaming: false } : msg
       ));
       
+      if (ipcRenderer) {
+        ipcRenderer.send('show-answer-in-overlay', standaloneResponse, 'Standalone Answer');
+      }
+
       chatHistoryRef.current.push({ role: 'user', content: text });
       chatHistoryRef.current.push({ role: 'assistant', content: standaloneResponse });
     }
@@ -1250,22 +1306,6 @@ export default function Dashboard() {
                           title="Capture Screen & Solve"
                         >
                           {isSolving ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Camera size={18} />}
-                        </button>
-                        
-                        {/* Audio listening switch */}
-                        <button 
-                          onClick={toggleListening} 
-                          className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 shrink-0 relative group mb-[1px] ${
-                            isListening 
-                              ? 'bg-gradient-to-tr from-primary to-accent border-primary/30 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
-                              : 'bg-black/[0.03] border-black/[0.06] text-text-secondary hover:bg-black/[0.06] hover:border-black/[0.1]'
-                          }`}
-                          title={isListening ? "Mute Acoustic Mic" : "Start Acoustic Capture"}
-                        >
-                          {isListening ? <Mic size={18} className="animate-pulse" /> : <MicOff size={18} />}
-                          <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg-secondary transition-all ${
-                            isListening ? 'bg-success' : 'bg-text-muted'
-                          }`} />
                         </button>
                         
                         {/* Text command input */}
