@@ -66,7 +66,7 @@ const callGroqAI = async (systemInstruction, userPrompt, res) => {
       console.log(`[Groq] Trying model: ${modelName}`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 second timeout per model
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout to 10 seconds for large models
       
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -214,9 +214,9 @@ const callGeminiAI = async (systemInstruction, userPrompt, res) => {
         let clientGone = false;
         res.socket?.on('close', () => { clientGone = true; });
 
-        // Throw error if model takes more than 2.5 seconds to respond
+        // Throw error if model takes more than 10 seconds to respond
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('TIMEOUT: Model took too long')), 2500)
+          setTimeout(() => reject(new Error('TIMEOUT: Model took too long')), 10000)
         );
 
         const result = await Promise.race([
