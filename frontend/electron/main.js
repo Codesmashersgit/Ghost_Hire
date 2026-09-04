@@ -327,16 +327,15 @@ app.whenReady().then(() => {
     }
   });
 
-  // ── Ctrl+Shift+C → CODE ONLY (uses last screenshot) ───────────────────────
+  // ── Ctrl+Shift+C → CODE ONLY (uses fresh screenshot) ───────────────────────
   globalShortcut.register('CommandOrControl+Shift+C', async () => {
     console.log('[Shortcut] Get Code triggered');
     try {
-      // If no previous screenshot, capture fresh one
-      if (!lastScreenshot) {
-        const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
-        if (!sources.length) return;
-        lastScreenshot = sources[0].thumbnail.toDataURL();
-      }
+      // ALWAYS capture a fresh screenshot when using the shortcut
+      const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+      if (!sources.length) return;
+      lastScreenshot = sources[0].thumbnail.toDataURL(); // Update lastScreenshot just in case
+      
       shell.beep(); // Beep = fetching code
 
       const token = await getToken();
