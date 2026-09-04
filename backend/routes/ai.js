@@ -43,13 +43,12 @@ const GROQ_MODELS = [
   'groq/compound-mini'
 ];
 
-// Gemini FALLBACK — only if Groq fails
+// Gemini FALLBACK & VISION — Fast and accurate models
 const GEMINI_MODELS = [
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-pro',
-  'gemini-3.0-flash',
-  'gemini-2.5-pro'
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-exp',
+  'gemini-1.5-pro'
 ];
 
 
@@ -435,20 +434,40 @@ Keep it SHORT and FAST. Easy language. NO code under any circumstance.`;
       }
     }];
 
-    const promises = GEMINI_MODELS.map(async (modelName) => {
-      console.log(`[Quick Explain] Racing model: ${modelName}`);
-      const geminiModel = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction,
-      });
-      const result = await geminiModel.generateContent([
-        "Explain this question theoretically only. No code.", 
-        ...imageParts
-      ]);
-      return (await result.response).text().trim();
-    });
+    let answer = null;
+    let lastError = null;
 
-    const answer = await Promise.any(promises);
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        console.log(`[Quick Explain] Trying model: ${modelName}`);
+        const geminiModel = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction,
+        });
+        
+        // Add timeout for each attempt
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT: Model took too long')), 15000)
+        );
+
+        const result = await Promise.race([
+          geminiModel.generateContent(["Explain this question theoretically only. No code.", ...imageParts]),
+          timeoutPromise
+        ]);
+        
+        answer = (await result.response).text().trim();
+        break; // Success, exit loop
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Quick Explain] ${modelName} failed (${err.message}) -> switching to next...`);
+        continue;
+      }
+    }
+
+    if (!answer) {
+      throw lastError || new Error('All models failed');
+    }
+
     return res.json({ success: true, answer });
   } catch (err) {
     console.error('quick-explain error:', err.message);
@@ -490,20 +509,39 @@ Be direct, fast, and accurate.`;
       }
     }];
 
-    const promises = GEMINI_MODELS.map(async (modelName) => {
-      console.log(`[Get Code] Racing model: ${modelName}`);
-      const geminiModel = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction,
-      });
-      const result = await geminiModel.generateContent([
-        "Write optimal code for this question.", 
-        ...imageParts
-      ]);
-      return (await result.response).text().trim();
-    });
+    let answer = null;
+    let lastError = null;
 
-    let answer = await Promise.any(promises);
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        console.log(`[Get Code] Trying model: ${modelName}`);
+        const geminiModel = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction,
+        });
+
+        // Add timeout for each attempt
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT: Model took too long')), 20000)
+        );
+
+        const result = await Promise.race([
+          geminiModel.generateContent(["Write optimal code for this question.", ...imageParts]),
+          timeoutPromise
+        ]);
+        
+        answer = (await result.response).text().trim();
+        break; // Success, exit loop
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Get Code] ${modelName} failed (${err.message}) -> switching to next...`);
+        continue;
+      }
+    }
+
+    if (!answer) {
+      throw lastError || new Error('All models failed');
+    }
 
     if (answer.startsWith('```') && answer.endsWith('```')) {
       const lines = answer.split('\n');
